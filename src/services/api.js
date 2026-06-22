@@ -1,0 +1,458 @@
+﻿import { getAccessToken, getCurrentMember, saveSession } from './session'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
+function withBaseUrl(path) {
+  if (/^https?:\/\//.test(path)) return path
+  return `${API_BASE_URL}${path}`
+}
+
+function normalizeImageUrl(data) {
+  const imageUrl = (
+    typeof data === 'string'
+      ? data
+      : data?.imageUrl || data?.imageURL || data?.url || data?.fileUrl || data?.path
+  )?.trim()
+
+  if (!imageUrl) {
+    throw new Error('이미지 URL을 찾을 수 없습니다.')
+  }
+
+  if (/^(https?:|data:image\/|blob:)/.test(imageUrl)) {
+    return imageUrl
+  }
+
+  return withBaseUrl(imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`)
+}
+
+function normalizeOptionalImageUrl(data) {
+  try {
+    return normalizeImageUrl(data)
+  } catch {
+    return ''
+  }
+}
+
+function toApiImagePath(imageUrl) {
+  if (!imageUrl) return imageUrl
+
+  if (imageUrl.startsWith('/uploads/images/')) {
+    return imageUrl
+  }
+
+  if (imageUrl.startsWith(API_BASE_URL)) {
+    const path = imageUrl.slice(API_BASE_URL.length)
+    return path.startsWith('/uploads/images/') ? path : imageUrl
+  }
+
+  try {
+    const url = new URL(imageUrl)
+    return url.pathname.startsWith('/uploads/images/') ? url.pathname : imageUrl
+  } catch {
+    return imageUrl
+  }
+}
+
+function extractList(payload, keys = []) {
+  const candidates = [
+    payload?.data,
+    payload?.result,
+    payload,
+    ...keys.map((key) => payload?.data?.[key]),
+    ...keys.map((key) => payload?.[key]),
+    payload?.data?.content,
+    payload?.data?.list,
+    payload?.content,
+    payload?.list,
+  ]
+
+  return candidates.find((candidate) => Array.isArray(candidate)) || []
+}
+
+async function request(path, options = {}) {
+  const { timeoutMs = 10000, auth = true, ...fetchOptions } = options
+  const token = getAccessToken()
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs)
+  const headers = {
+    ...(fetchOptions.headers || {}),
+  }
+
+  if (fetchOptions.body && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json'
+  }
+
+  if (auth && token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  try {
+    const response = await fetch(withBaseUrl(path), {
+      ...fetchOptions,
+      headers,
+      signal: controller.signal,
+    })
+
+    const text = await response.text()
+    const contentType = response.headers.get('content-type') || ''
+    const payload = text
+      ? contentType.includes('application/json')
+        ? JSON.parse(text)
+        : text
+      : {}
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('로그인이 만료되었거나 인증 정보가 없습니다. 다시 로그인해주세요.')
+      }
+
+      throw new Error(payload.message || '요청을 처리하지 못했습니다.')
+    }
+
+    return payload
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.')
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
+
+function normalizeRole(role) {
+  if (role === '교사') return 'TEACHER'
+  if (role === '학생') return 'STUDENT'
+  return role || 'STUDENT'
+}
+
+export async function login(credentials) {
+  const payload = await request('/api/auth/login', {
+    method: 'POST',
+    auth: false,
+    body: JSON.stringify(credentials),
+  })
+
+  const member = {
+    ...payload.data.member,
+    role: normalizeRole(payload.data.member.role),
+  }
+
+  saveSession({
+    accessToken: payload.data.accessToken,
+    member,
+  })
+
+  return member
+}
+
+export function signup(data) {
+  const payload = {
+    email: data.email,
+    password: data.password,
+    role: normalizeRole(data.role),
+    nickname: data.nickname,
+    age: data.age,
+    gender: data.gender,
+    profile: data.profile || 'default',
+  }
+
+  return request('/api/members', {
+    method: 'POST',
+    auth: false,
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function fetchQuizRooms() {
+  const payload = await request('/api/play', { timeoutMs: 10000 })
+  const rooms = extractList(payload, ['quizRoomList', 'quizRooms', 'rooms'])
+
+  return Promise.all(
+    rooms.map(async (room) => {
+      const roomId = room?.quizRoomId || room?.quizroomId || room?.id
+
+      if (!roomId) {
+        return room
+      }
+
+      try {
+        const detail = await fetchQuizRoom(roomId)
+        return {
+          ...room,
+          ...detail,
+          quizList: detail?.quizList || room?.quizList || [],
+        }
+      } catch {
+        return room
+      }
+    }),
+  )
+}
+
+export async function fetchQuizRoom(id) {
+  const payload = await request(`/api/play/${id}`, { timeoutMs: 10000 })
+  const room = payload.data
+
+  return {
+    ...room,
+    quizList: (room?.quizList || []).map((quiz) => ({
+      ...quiz,
+      image: normalizeOptionalImageUrl(quiz.image || quiz.imageUrl || quiz.url),
+    })),
+  }
+}
+
+export async function fetchTeacherQuizzes() {
+  const payload = await request('/api/quiz')
+  return extractList(payload, ['quizList', 'quizzes'])
+}
+
+export async function fetchTeacherQuizRooms() {
+  const payload = await request('/api/quizroom')
+  return extractList(payload, ['quizRoomList', 'quizRooms', 'rooms'])
+}
+
+export async function generateImage(prompt) {
+  const payload = await request('/api/ai/image', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+    timeoutMs: 60000,
+  })
+
+  return normalizeImageUrl(payload?.data ?? payload)
+}
+
+export async function compareImages(answerImageUrl, studentImageUrl) {
+  const payload = await request('/api/ai/compare', {
+    method: 'POST',
+    timeoutMs: 60000,
+    body: JSON.stringify({
+      answerImageUrl: toApiImagePath(answerImageUrl),
+      studentImageUrl: toApiImagePath(studentImageUrl),
+    }),
+  })
+
+  return payload.data
+}
+
+export async function submitFinalFeedback(roomId, results) {
+  const payload = await request(`/api/play/answer/${roomId}`, {
+    method: 'POST',
+    timeoutMs: 60000,
+    body: JSON.stringify({ results }),
+  })
+
+  return payload.data
+}
+
+export async function increaseQuizRoomLike(roomId) {
+  const payload = await request(`/api/play/like/${roomId}`, {
+    method: 'POST',
+  })
+
+  return payload.data
+}
+
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null)
+}
+
+function normalizeQuizResult(result) {
+  return {
+    ...result,
+    id: firstDefined(result?.id, result?.resultId, result?.quizResultId),
+    quizRoomId: firstDefined(result?.quizRoomId, result?.quizroomId, result?.roomId, result?.quizRoom?.id),
+    quizRoomTitle: firstDefined(result?.quizRoomTitle, result?.roomTitle, result?.title, result?.quizRoom?.title),
+    score: Number(firstDefined(result?.score, result?.point, result?.totalScore)) || 0,
+    feedback: firstDefined(result?.feedback, result?.finalFeedback, result?.aiFeedback, ''),
+    createdTime: firstDefined(result?.createdTime, result?.createdAt, result?.date, result?.solvedAt),
+  }
+}
+
+function normalizeMyPageProfile(profile) {
+  const quizResults = firstDefined(
+    profile?.quizResults,
+    profile?.quizResultList,
+    profile?.learningRecords,
+    profile?.histories,
+    profile?.results,
+    [],
+  )
+  const normalizedResults = Array.isArray(quizResults) ? quizResults.map(normalizeQuizResult) : []
+  const averageScore = Number(firstDefined(profile?.averageScore, profile?.avgScore, profile?.scoreAverage))
+  const solvedCount = Number(
+    firstDefined(profile?.solvedCount, profile?.solvedCnt, profile?.quizResultCount, profile?.completedCount),
+  )
+  const highestScore = Number(firstDefined(profile?.highestScore, profile?.highScore, profile?.maxScore, profile?.bestScore))
+  const resultScores = normalizedResults.map((result) => Number(result.score)).filter(Number.isFinite)
+
+  return {
+    ...profile,
+    role: normalizeRole(profile?.role),
+    profile: normalizeOptionalImageUrl(profile?.profile),
+    averageScore: Number.isFinite(averageScore)
+      ? averageScore
+      : resultScores.length
+        ? resultScores.reduce((sum, score) => sum + score, 0) / resultScores.length
+        : 0,
+    solvedCount: Number.isFinite(solvedCount) ? solvedCount : normalizedResults.length,
+    highestScore: Number.isFinite(highestScore) ? highestScore : resultScores.length ? Math.max(...resultScores) : 0,
+    quizResults: normalizedResults,
+  }
+}
+
+function parseJsonObject(value) {
+  if (typeof value !== 'string') return value
+
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+function hasMemberShape(value) {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      (value.id ||
+        value.email ||
+        value.nickname ||
+        value.role ||
+        value.quizResults ||
+        value.quizResultList ||
+        value.learningRecords),
+  )
+}
+
+function extractMemberProfile(payload) {
+  const parsedPayload = parseJsonObject(payload)
+  const candidates = [
+    parsedPayload?.data,
+    parsedPayload?.result,
+    parsedPayload?.member,
+    parsedPayload?.profile,
+    parsedPayload?.user,
+    parsedPayload?.memberInfo,
+    parsedPayload?.userInfo,
+    parsedPayload?.myPage,
+    parsedPayload,
+  ]
+
+  for (const candidate of candidates) {
+    const parsedCandidate = parseJsonObject(candidate)
+
+    if (hasMemberShape(parsedCandidate)) {
+      return parsedCandidate
+    }
+
+    const nested = [
+      parsedCandidate?.data,
+      parsedCandidate?.result,
+      parsedCandidate?.member,
+      parsedCandidate?.profile,
+      parsedCandidate?.user,
+      parsedCandidate?.memberInfo,
+      parsedCandidate?.userInfo,
+      parsedCandidate?.myPage,
+    ]
+
+    const found = nested.map(parseJsonObject).find(hasMemberShape)
+    if (found) return found
+  }
+
+  return null
+}
+
+export async function fetchMyPage() {
+  const payload = await request('/api/members/me')
+  const profile = extractMemberProfile(payload) || getCurrentMember()
+
+  if (!profile || typeof profile !== 'object') {
+    throw new Error('마이페이지 정보를 불러오지 못했습니다.')
+  }
+
+  return normalizeMyPageProfile(profile)
+}
+
+export async function updateMyPage(data) {
+  const payload = {
+    nickname: data.nickname,
+    age: data.age,
+    gender: data.gender,
+    profile: data.profile || 'default',
+  }
+
+  const response = await request('/api/members/me', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+  const profile = extractMemberProfile(response) || response.data
+
+  const member = {
+    ...profile,
+    role: normalizeRole(profile?.role),
+    profile: normalizeOptionalImageUrl(profile?.profile),
+  }
+
+  saveSession({
+    member,
+  })
+
+  return member
+}
+
+export async function generatePrompt(data) {
+  const payload = await request('/api/ai/prompt', {
+    method: 'POST',
+    timeoutMs: 60000,
+    body: JSON.stringify(data),
+  })
+
+  return payload.data
+}
+
+export function createQuiz(data) {
+  return request('/api/quiz', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function updateQuiz(quizId, title) {
+  return request(`/api/quiz/${quizId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'text/plain;charset=UTF-8',
+    },
+    body: title,
+  })
+}
+
+export function deleteQuiz(quizId) {
+  return request(`/api/quiz/${quizId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function createQuizRoom(data) {
+  return request('/api/quizroom', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function updateQuizRoom(roomId, data) {
+  return request(`/api/quizroom/${roomId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export function deleteQuizRoom(roomId) {
+  return request(`/api/quizroom/${roomId}`, {
+    method: 'DELETE',
+  })
+}
