@@ -598,14 +598,14 @@ onMounted(loadTeacherDashboard)
   <section v-else class="page create-page">
     <div class="create-shell">
       <aside class="card create-sidebar">
-        <button class="back-button" type="button" @click="backToDashboard">‹ 이미지 생성</button>
+        <button class="back-button" type="button" aria-label="뒤로가기" @click="backToDashboard">‹</button>
 
         <div class="side-block">
           <h2>프롬프트</h2>
           <textarea v-model="generatedPrompt" class="prompt-preview" placeholder="키워드를 선택하고 프롬프트를 생성하세요." />
         </div>
 
-        <button class="button primary full" type="button" :disabled="loading === 'image'" @click="runGenerateImage">
+        <button class="button primary full generate-button" type="button" :disabled="loading === 'image'" @click="runGenerateImage">
           {{ loading === 'image' ? '이미지 생성 중' : '이미지 생성' }}
         </button>
       </aside>

@@ -14,7 +14,9 @@ const isAuthed = computed(() => Boolean(member.value))
 const isTeacher = computed(() => member.value?.role === 'TEACHER')
 
 const navItems = computed(() => {
-  const items = [{ to: '/', label: '홈' }]
+  if (!isAuthed.value) return []
+
+  const items = []
 
   if (isTeacher.value) {
     items.push({ to: '/teacher', label: '교사 대시보드' })
@@ -22,9 +24,7 @@ const navItems = computed(() => {
     items.push({ to: '/quiz-rooms', label: '퀴즈 목록' })
   }
 
-  if (isAuthed.value) {
-    items.push({ to: '/my-page', label: '마이페이지' })
-  }
+  items.push({ to: '/my-page', label: '마이페이지' })
 
   return items
 })
@@ -39,8 +39,8 @@ function handleLogout() {
   <div class="app-shell">
     <header class="topbar">
       <RouterLink class="brand" to="/">
-        <span class="brand-mark">AI</span>
-        <span>AI 프롬프트 퀴즈 플랫폼</span>
+        <img class="brand-mark" src="/writeprompt-logo.svg" alt="" />
+        <span>WritePrompt</span>
       </RouterLink>
 
       <nav class="nav-links" aria-label="주요 메뉴">
@@ -53,7 +53,10 @@ function handleLogout() {
           {{ item.label }}
         </RouterLink>
         <button v-if="isAuthed" class="nav-button" type="button" @click="handleLogout">로그아웃</button>
-        <RouterLink v-else class="nav-login" to="/login">로그인</RouterLink>
+        <template v-else>
+          <RouterLink class="nav-login" to="/login">로그인</RouterLink>
+          <RouterLink class="nav-login" to="/signup">회원가입</RouterLink>
+        </template>
       </nav>
     </header>
 
@@ -61,6 +64,6 @@ function handleLogout() {
       <RouterView />
     </main>
 
-    <footer class="footer">© 2026 AI 프롬프트 퀴즈 플랫폼. All rights reserved.</footer>
+    <footer class="footer">© 2026 WritePrompt. All rights reserved.</footer>
   </div>
 </template>

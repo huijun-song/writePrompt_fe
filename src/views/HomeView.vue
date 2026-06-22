@@ -2,11 +2,47 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { getCurrentMember } from '../services/session'
 
+const quizShots = [
+  { label: '미래 도시', className: 'shot-city' },
+  { label: '숲속 로봇', className: 'shot-forest' },
+  { label: '바닷속 도서관', className: 'shot-ocean' },
+  { label: '우주 정거장', className: 'shot-space' },
+  { label: '사막 연구소', className: 'shot-desert' },
+  { label: '고양이 카페', className: 'shot-cafe' },
+]
+
+const marqueeShots = Array.from({ length: 4 }, (_, setIndex) =>
+  quizShots.map((shot) => ({ ...shot, key: `${setIndex}-${shot.label}` })),
+).flat()
+
 const startPath = computed(() => {
   const member = getCurrentMember()
 
   if (!member) return '/login'
   return member.role === 'TEACHER' ? '/teacher' : '/quiz-rooms'
+})
+
+const heroActions = computed(() => {
+  const member = getCurrentMember()
+
+  if (!member) {
+    return [
+      { to: '/login', label: '로그인하고 시작하기', variant: 'primary' },
+      { to: '/signup', label: '회원가입', variant: 'secondary' },
+    ]
+  }
+
+  if (member.role === 'TEACHER') {
+    return [
+      { to: '/teacher', label: '교사 대시보드', variant: 'primary' },
+      { to: '/teacher', label: '퀴즈 만들기', variant: 'secondary' },
+    ]
+  }
+
+  return [
+    { to: startPath.value, label: '퀴즈 시작하기', variant: 'primary' },
+    { to: '/quiz-rooms', label: '퀴즈룸 보기', variant: 'secondary' },
+  ]
 })
 
 let observer
@@ -67,15 +103,26 @@ onUnmounted(() => {
       <div class="hero-color-field" aria-hidden="true"></div>
       <div class="stripe-container stripe-hero-grid reveal-on-scroll">
         <div class="stripe-copy">
-          <span class="stripe-kicker">AI prompt learning platform</span>
-          <h1>프롬프트 수업을 더 빠르게 설계하고, 더 선명하게 채점하세요.</h1>
+          <span class="stripe-kicker">AI Prompt Learning Platform</span>
+          <h1>
+            <span>이미지를 보고,</span>
+            <span>프롬프트로 답하는,</span>
+            <span>AI 학습 플랫폼</span>
+          </h1>
           <p>
-            이미지 생성, 퀴즈룸, AI 유사도 피드백까지 한 흐름으로 연결해
-            학생들이 생성형 AI를 직접 써보며 익힐 수 있게 합니다.
+            교사는 AI 이미지 퀴즈를 만들고, 학생은 장면을 정확한 프롬프트로 해석합니다.
+            생성형 AI를 설명으로만 배우지 않고, 직접 관찰하고 정확하게 표현하며 익힙니다.
           </p>
           <div class="stripe-actions">
-            <RouterLink class="stripe-button stripe-button-primary" :to="startPath">시작하기</RouterLink>
-            <RouterLink class="stripe-button stripe-button-secondary" to="/quiz-rooms">퀴즈룸 보기</RouterLink>
+            <RouterLink
+              v-for="action in heroActions"
+              :key="action.label"
+              class="stripe-button"
+              :class="`stripe-button-${action.variant}`"
+              :to="action.to"
+            >
+              {{ action.label }}
+            </RouterLink>
           </div>
         </div>
 
@@ -92,9 +139,9 @@ onUnmounted(() => {
               <span class="line-mid"></span>
             </div>
             <div class="prompt-tags">
-              <span>sunset</span>
-              <span>future city</span>
-              <span>robot</span>
+              <span>장면 관찰</span>
+              <span>프롬프트 작성</span>
+              <span>AI 비교</span>
             </div>
           </div>
 
@@ -106,20 +153,20 @@ onUnmounted(() => {
               <span class="mini-building building-three"></span>
             </div>
             <div class="image-caption">
-              <strong>AI 이미지 퀴즈</strong>
-              <span>장면을 읽고 프롬프트를 완성</span>
+              <strong>이미지 기반 퀴즈</strong>
+              <span>보이는 장면을 정확한 프롬프트로 바꾸기</span>
             </div>
           </div>
 
           <div class="score-panel">
-            <span>Similarity score</span>
+            <span>Answer match</span>
             <strong>92%</strong>
             <div class="score-meter"><span></span></div>
           </div>
 
           <div class="code-panel">
-            <span>feedback.generated</span>
-            <code>핵심 사물 4개 중 3개 일치</code>
+            <span>피드백</span>
+            <code>색감과 구도는 정확, 배경 묘사를 보완하세요</code>
           </div>
         </div>
       </div>
@@ -128,94 +175,87 @@ onUnmounted(() => {
     <section class="motion-story">
       <div class="stripe-container motion-stage">
         <div class="motion-copy reveal-on-scroll">
-          <span class="stripe-kicker">Scroll workflow</span>
-          <h2>스크롤할수록 수업 장면이 단계별로 열립니다.</h2>
+          <h2>
+            <span>학생은 이미지를 보고,</span>
+            <span>자신만의 프롬프트를</span>
+            <span>완성합니다.</span>
+          </h2>
           <p>
-            Framer처럼 한 화면 안에서 제품 장면이 전환되도록, 프롬프트 제작부터 학생 답안,
-            AI 피드백까지 흐름을 움직이는 컴포넌트로 보여줍니다.
+            이미지 속 대상과 분위기를 살펴보고, 최대한 자세하게 프롬프트를 작성합니다.
+            제출하면 생성 이미지와 기준 이미지를 비교해 채점과 피드백을 제공합니다.
           </p>
         </div>
 
-        <div class="motion-canvas" aria-label="스크롤 인터랙션 미리보기">
+        <div class="motion-canvas" aria-label="학생 풀이 흐름 미리보기">
           <div class="orbit-ring"></div>
           <article class="motion-card motion-card-one">
             <span>Step 1</span>
-            <strong>프롬프트 생성</strong>
-            <p>키워드와 스타일을 조합해 문제의 기준 답안을 만듭니다.</p>
+            <strong>이미지 관찰</strong>
+            <p>대상, 배경, 분위기, 구도를 살펴보며 장면의 핵심 단서를 찾습니다.</p>
           </article>
           <article class="motion-card motion-card-two">
             <span>Step 2</span>
-            <strong>퀴즈룸 공개</strong>
-            <p>학생들이 이미지를 보고 장면을 언어로 재구성합니다.</p>
+            <strong>프롬프트 작성</strong>
+            <p>보이는 요소를 문장으로 조합해 AI가 다시 그릴 수 있는 프롬프트를 만듭니다.</p>
           </article>
           <article class="motion-card motion-card-three">
             <span>Step 3</span>
-            <strong>AI 피드백</strong>
-            <p>유사도와 누락 요소를 즉시 확인하고 다시 시도합니다.</p>
+            <strong>결과 비교</strong>
+            <p>생성된 이미지와 기준 이미지를 비교하며 표현의 정확도를 확인합니다.</p>
           </article>
         </div>
       </div>
 
       <div class="quiz-image-marquee" aria-label="퀴즈 이미지 예시">
         <div class="quiz-image-track">
-          <div class="quiz-shot shot-city"><span>미래 도시</span></div>
-          <div class="quiz-shot shot-forest"><span>숲속 로봇</span></div>
-          <div class="quiz-shot shot-ocean"><span>바닷속 도서관</span></div>
-          <div class="quiz-shot shot-space"><span>우주 정거장</span></div>
-          <div class="quiz-shot shot-desert"><span>사막 연구소</span></div>
-          <div class="quiz-shot shot-cafe"><span>고양이 카페</span></div>
-          <div class="quiz-shot shot-city"><span>미래 도시</span></div>
-          <div class="quiz-shot shot-forest"><span>숲속 로봇</span></div>
-          <div class="quiz-shot shot-ocean"><span>바닷속 도서관</span></div>
-          <div class="quiz-shot shot-space"><span>우주 정거장</span></div>
-          <div class="quiz-shot shot-desert"><span>사막 연구소</span></div>
-          <div class="quiz-shot shot-cafe"><span>고양이 카페</span></div>
+          <div v-for="shot in marqueeShots" :key="shot.key" class="quiz-shot" :class="shot.className">
+            <span>{{ shot.label }}</span>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="stripe-container stripe-solutions">
-      <div class="section-copy reveal-on-scroll">
-        <span class="stripe-kicker">Classroom workflow</span>
-        <h2>수업 준비부터 학생 피드백까지 하나의 흐름으로.</h2>
-      </div>
+      <div class="solution-layout">
+        <div class="solution-grid" aria-label="교사 워크플로우">
+          <article class="solution-card reveal-on-scroll">
+            <span class="solution-number">01</span>
+            <h3>문제 설계</h3>
+            <p>난이도, 배경, 분위기, 표현 조건을 고르면 수업에 쓸 기준 프롬프트와 이미지가 만들어집니다.</p>
+            <div class="workflow-tags">
+              <span>키워드 선택</span>
+              <span>이미지 생성</span>
+            </div>
+          </article>
+          <article class="solution-card reveal-on-scroll">
+            <span class="solution-number">02</span>
+            <h3>퀴즈룸 배포</h3>
+            <p>여러 문제를 묶어 퀴즈룸을 만들고, 수업 상황에 맞춰 공개 상태와 난이도를 관리합니다.</p>
+            <div class="workflow-tags">
+              <span>문제 묶기</span>
+              <span>공개 관리</span>
+            </div>
+          </article>
+          <article class="solution-card reveal-on-scroll">
+            <span class="solution-number">03</span>
+            <h3>학습 결과 확인</h3>
+            <p>제출 결과, 유사도 점수, 피드백을 확인하며 학생이 어떤 표현을 놓쳤는지 파악합니다.</p>
+            <div class="workflow-tags">
+              <span>점수 확인</span>
+              <span>피드백 분석</span>
+            </div>
+          </article>
+        </div>
 
-      <div class="solution-grid">
-        <article class="solution-card reveal-on-scroll">
-          <span class="solution-number">01</span>
-          <h3>프롬프트 제작</h3>
-          <p>주제, 스타일, 키워드를 조합해 수업용 프롬프트와 이미지를 빠르게 준비합니다.</p>
-        </article>
-        <article class="solution-card reveal-on-scroll">
-          <span class="solution-number">02</span>
-          <h3>퀴즈룸 운영</h3>
-          <p>학생은 이미지를 보고 답안을 제출하고, 교사는 참여 흐름을 한눈에 확인합니다.</p>
-        </article>
-        <article class="solution-card reveal-on-scroll">
-          <span class="solution-number">03</span>
-          <h3>AI 피드백</h3>
-          <p>원본 프롬프트와 답안을 비교해 유사도, 누락 요소, 개선 방향을 즉시 제공합니다.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="stripe-metrics">
-      <div class="stripe-container metrics-grid">
-        <div>
-          <span>3단계</span>
-          <p>생성, 풀이, 피드백으로 이어지는 학습 흐름</p>
-        </div>
-        <div>
-          <span>실시간</span>
-          <p>제출 직후 확인하는 AI 유사도 채점</p>
-        </div>
-        <div>
-          <span>교사용</span>
-          <p>수업 자료와 퀴즈룸을 관리하는 제작 스튜디오</p>
-        </div>
-        <div>
-          <span>학생용</span>
-          <p>이미지를 관찰하고 언어로 재구성하는 퀴즈 경험</p>
+        <div class="section-copy reveal-on-scroll">
+          <h2>
+            <span>퀴즈 생성부터 채점까지,</span>
+            <span>AI로 수업 준비 끝!</span>
+          </h2>
+          <p>
+            선생님은 프롬프트와 이미지를 빠르게 만들고, 퀴즈 형식으로 바로 학습할 수 있게 만듭니다.
+            제출 결과는 AI가 비교해 채점과 피드백까지 편하게 확인할 수 있습니다.
+          </p>
         </div>
       </div>
     </section>
