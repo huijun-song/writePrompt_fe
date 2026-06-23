@@ -17,7 +17,7 @@ const router = useRouter()
 const form = reactive({
   nickname: '',
   age: '',
-  gender: 'MALE',
+  gender: 'Male',
   profile: '',
 })
 
@@ -91,10 +91,16 @@ function quizRoomLabel(item) {
   return item.quizRoomTitle || `퀴즈룸 #${item.quizRoomId}`
 }
 
+function normalizeGender(value) {
+  const gender = String(value || '').toUpperCase()
+  if (gender === 'F' || gender === 'FEMALE') return 'Female'
+  return 'Male'
+}
+
 function syncForm(member) {
   form.nickname = member?.nickname || ''
   form.age = member?.age || ''
-  form.gender = member?.gender || 'MALE'
+  form.gender = normalizeGender(member?.gender)
   form.profile = member?.profile || ''
   imageBroken.value = false
 }
@@ -320,10 +326,8 @@ onMounted(loadProfile)
           <div class="field">
             <label for="gender">성별</label>
             <select id="gender" v-model="form.gender" required>
-              <option value="MALE">남성</option>
-              <option value="FEMALE">여성</option>
-              <option value="M">남성</option>
-              <option value="F">여성</option>
+              <option value="Male">남성</option>
+              <option value="Female">여성</option>
             </select>
           </div>
 

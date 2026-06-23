@@ -5,21 +5,36 @@ import { fetchQuizRooms } from '../services/api'
 const loading = ref(true)
 const errorMessage = ref('')
 const query = ref('')
+const levelFilter = ref('ALL')
 const rooms = ref([])
 const brokenThumbnails = ref({})
 
 const levelMap = {
-  BEGINNER: '초급',
-  INTERMEDIATE: '중급',
-  ADVANCED: '고급',
-  EASY: '초급',
+  BEGINNER: 'EASY',
+  INTERMEDIATE: 'NORMAL',
+  ADVANCED: 'HARD',
+  EASY: 'EASY',
+  NORMAL: 'NORMAL',
+  HARD: 'HARD',
 }
+
+const levelOptions = ['ALL', 'EASY', 'NORMAL', 'HARD']
 
 const filteredRooms = computed(() => {
   const keyword = query.value.trim().toLowerCase()
-  if (!keyword) return rooms.value
-  return rooms.value.filter((room) => `${room.title} ${room.description}`.toLowerCase().includes(keyword))
+  const selectedLevel = levelFilter.value
+
+  return rooms.value.filter((room) => {
+    const matchesKeyword = !keyword || `${room.title} ${room.description}`.toLowerCase().includes(keyword)
+    const matchesLevel = selectedLevel === 'ALL' || roomLevel(room) === selectedLevel
+
+    return matchesKeyword && matchesLevel
+  })
 })
+
+function roomLevel(room) {
+  return levelMap[room?.level] || room?.level || ''
+}
 
 function imageClass(room, index) {
   return room.theme || ['nature', 'character', 'city'][index % 3]
@@ -80,6 +95,11 @@ onMounted(async () => {
 
     <div class="toolbar">
       <input v-model="query" class="search-input" placeholder="퀴즈 검색..." type="search" />
+      <select v-model="levelFilter" class="level-filter" aria-label="난이도 필터">
+        <option v-for="level in levelOptions" :key="level" :value="level">
+          {{ level === 'ALL' ? '난이도' : level }}
+        </option>
+      </select>
     </div>
 
     <p v-if="loading" class="muted">퀴즈룸을 불러오는 중입니다.</p>
@@ -98,7 +118,7 @@ onMounted(async () => {
         </div>
         <div class="quiz-body">
           <div class="chip-row">
-            <span class="chip">{{ levelMap[room.level] || room.level || '레벨 없음' }}</span>
+            <span class="chip">{{ roomLevel(room) || '레벨 없음' }}</span>
             <span class="chip">{{ quizCount(room) }}문제</span>
           </div>
           <h2>{{ room.title }}</h2>
