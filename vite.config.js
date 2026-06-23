@@ -10,6 +10,18 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://43.200.202.174:8080',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://43.200.202.174:8080',
+        changeOrigin: true,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

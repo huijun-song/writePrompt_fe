@@ -1,8 +1,13 @@
 ﻿import { clearSession, getAccessToken, getCurrentMember, getRefreshToken, saveSession } from './session'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://43.200.202.174:8080'
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+const LEGACY_API_ORIGIN = 'http://43.200.202.174:8080'
 
 function withBaseUrl(path) {
+  if (path.startsWith(LEGACY_API_ORIGIN)) {
+    return `${API_BASE_URL}${path.slice(LEGACY_API_ORIGIN.length)}`
+  }
+
   if (/^https?:\/\//.test(path)) return path
   return `${API_BASE_URL}${path}`
 }
@@ -16,6 +21,10 @@ function normalizeImageUrl(data) {
 
   if (!imageUrl) {
     throw new Error('이미지 URL을 찾을 수 없습니다.')
+  }
+
+  if (imageUrl.startsWith(LEGACY_API_ORIGIN)) {
+    return withBaseUrl(imageUrl)
   }
 
   if (/^(https?:|data:image\/|blob:)/.test(imageUrl)) {
@@ -51,8 +60,13 @@ function toApiImagePath(imageUrl) {
     return imageUrl
   }
 
-  if (imageUrl.startsWith(API_BASE_URL)) {
+  if (API_BASE_URL && imageUrl.startsWith(API_BASE_URL)) {
     const path = imageUrl.slice(API_BASE_URL.length)
+    return path.startsWith('/uploads/images/') ? path : imageUrl
+  }
+
+  if (imageUrl.startsWith(LEGACY_API_ORIGIN)) {
+    const path = imageUrl.slice(LEGACY_API_ORIGIN.length)
     return path.startsWith('/uploads/images/') ? path : imageUrl
   }
 
