@@ -567,18 +567,15 @@ async function runGenerateImage() {
 }
 
 async function runCreateQuiz() {
-  const userId = getMemberId()
-
-  if (!userId) {
-    message.value = '로그인한 교사 정보를 찾을 수 없습니다.'
-    return
-  }
-
   loading.value = 'quiz'
   message.value = ''
 
   try {
-    const payload = await createQuiz({ userId, ...quizForm, image: generatedImage.value || quizForm.image })
+    const payload = await createQuiz({
+      title: quizForm.title,
+      image: generatedImage.value || quizForm.image,
+      level: quizForm.level,
+    })
     const createdQuiz = payload?.data
     const fallbackQuiz = {
       id: Date.now(),

@@ -1,6 +1,6 @@
-﻿import { getAccessToken, getCurrentMember, logout as clearSession, saveSession } from './session'
+﻿import { clearSession, getAccessToken, getCurrentMember, getRefreshToken, saveSession } from './session'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://43.200.202.174:8080'
 
 function withBaseUrl(path) {
   if (/^https?:\/\//.test(path)) return path
@@ -69,8 +69,24 @@ function extractList(payload, keys = []) {
   return candidates.find((candidate) => Array.isArray(candidate)) || []
 }
 
+let refreshPromise = null
+
+function getPayloadData(payload) {
+  return payload?.data ?? payload?.result ?? payload
+}
+
+function getTokenFromPayload(payload, key) {
+  const data = getPayloadData(payload)
+
+  if (typeof data === 'string' && key === 'accessToken') {
+    return data
+  }
+
+  return data?.[key] ?? payload?.[key] ?? data?.token?.[key] ?? data?.tokens?.[key]
+}
+
 async function request(path, options = {}) {
-  const { timeoutMs = 10000, auth = true, ...fetchOptions } = options
+  const { timeoutMs = 10000, auth = true, retryOnAuthError = auth, ...fetchOptions } = options
   const token = getAccessToken()
   const controller = new AbortController()
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs)
@@ -102,6 +118,14 @@ async function request(path, options = {}) {
       : {}
 
     if (!response.ok) {
+      if (response.status === 401 && retryOnAuthError) {
+        await refreshAccessToken()
+        return request(path, {
+          ...options,
+          retryOnAuthError: false,
+        })
+      }
+
       if (response.status === 401 || response.status === 403) {
         throw new Error('로그인이 만료되었거나 인증 정보가 없습니다. 다시 로그인해주세요.')
       }
@@ -132,18 +156,80 @@ export async function login(credentials) {
     auth: false,
     body: JSON.stringify(credentials),
   })
+  const data = getPayloadData(payload)
+  const memberData = data?.member ?? data?.memberInfo ?? data?.user ?? data?.userInfo
 
   const member = {
-    ...payload.data.member,
-    role: normalizeRole(payload.data.member.role),
+    ...memberData,
+    role: normalizeRole(memberData?.role),
   }
 
   saveSession({
-    accessToken: payload.data.accessToken,
+    accessToken: getTokenFromPayload(payload, 'accessToken'),
+    refreshToken: getTokenFromPayload(payload, 'refreshToken'),
     member,
   })
 
   return member
+}
+
+export async function refreshAccessToken() {
+  const refreshToken = getRefreshToken()
+
+  if (!refreshToken) {
+    clearSession()
+    throw new Error('로그인이 만료되었습니다. 다시 로그인해주세요.')
+  }
+
+  refreshPromise ||= request('/api/auth/refresh', {
+    method: 'POST',
+    auth: false,
+    retryOnAuthError: false,
+    body: JSON.stringify({ refreshToken }),
+  })
+    .then((payload) => {
+      const accessToken = getTokenFromPayload(payload, 'accessToken')
+      const nextRefreshToken = getTokenFromPayload(payload, 'refreshToken')
+
+      if (!accessToken) {
+        throw new Error('Access Token 재발급에 실패했습니다.')
+      }
+
+      saveSession({
+        accessToken,
+        refreshToken: nextRefreshToken,
+      })
+
+      return accessToken
+    })
+    .catch((error) => {
+      clearSession()
+      throw error
+    })
+    .finally(() => {
+      refreshPromise = null
+    })
+
+  return refreshPromise
+}
+
+export async function logout() {
+  const refreshToken = getRefreshToken()
+
+  try {
+    if (refreshToken) {
+      await request('/api/auth/logout', {
+        method: 'POST',
+        auth: false,
+        retryOnAuthError: false,
+        body: JSON.stringify({ refreshToken }),
+      })
+    }
+  } catch {
+    // Local logout should still complete even if the server-side token cleanup fails.
+  } finally {
+    clearSession()
+  }
 }
 
 export function signup(data) {
@@ -432,7 +518,14 @@ export async function generatePrompt(data) {
 export function createQuiz(data) {
   return request('/api/quiz', {
     method: 'POST',
-    body: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json;charset=UTF-8',
+    },
+    body: JSON.stringify({
+      title: data.title,
+      image: data.image,
+      level: data.level,
+    }),
   })
 }
 
@@ -471,4 +564,3 @@ export function deleteQuizRoom(roomId) {
     method: 'DELETE',
   })
 }
-
