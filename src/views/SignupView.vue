@@ -14,7 +14,6 @@ const form = reactive({
   role: 'STUDENT',
   age: '',
   gender: 'MALE',
-  profile: '',
 })
 
 async function submit() {
@@ -93,11 +92,6 @@ async function submit() {
             <option value="MALE">남성</option>
             <option value="FEMALE">여성</option>
           </select>
-        </div>
-
-        <div class="field">
-          <label for="profile">프로필 이미지 URL</label>
-          <input id="profile" v-model="form.profile" placeholder="비워두면 기본값으로 가입됩니다." />
         </div>
 
         <button class="button primary full" type="submit" :disabled="loading">

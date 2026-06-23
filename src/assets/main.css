@@ -542,6 +542,84 @@ main {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
+.profile-upload {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-upload-preview {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: white;
+  background: #6366f1;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.profile-upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-upload-input {
+  padding: 12px;
+}
+
+.profile-edit-panel {
+  width: min(980px, 100%);
+}
+
+.profile-edit-form {
+  gap: 22px;
+}
+
+.profile-edit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 34px;
+  align-items: start;
+}
+
+.profile-edit-fields {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-edit-image-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-edit-image-panel > label {
+  color: #374151;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.profile-upload-large {
+  justify-items: center;
+}
+
+.profile-upload-large .profile-upload-preview {
+  width: 188px;
+  height: 188px;
+  font-size: 62px;
+}
+
+.profile-upload-large .profile-upload-input {
+  width: 100%;
+}
+
+.profile-upload-large .muted {
+  margin: 0;
+  text-align: center;
+}
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -2627,8 +2705,15 @@ main {
   .create-shell,
   .keyword-grid,
   .direct-inputs,
-  .save-quiz-form {
+  .save-quiz-form,
+  .profile-edit-grid {
     grid-template-columns: 1fr;
+  }
+
+  .profile-upload-large .profile-upload-preview {
+    width: 152px;
+    height: 152px;
+    font-size: 50px;
   }
 
   .auth-card {

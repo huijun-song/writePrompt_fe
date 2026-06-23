@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { deleteMyPage, fetchMyPage, updateMyPage } from '../services/api'
+import { deleteMyPage, fetchMyPage, updateMyPage, uploadProfileImage } from '../services/api'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -10,8 +10,11 @@ const errorMessage = ref('')
 const message = ref('')
 const profile = ref(null)
 const imageBroken = ref(false)
+const editImageBroken = ref(false)
 const isEditModalOpen = ref(false)
 const selectedFeedback = ref(null)
+const selectedProfileFile = ref(null)
+const profilePreviewUrl = ref('')
 const router = useRouter()
 
 const form = reactive({
@@ -75,6 +78,11 @@ const statCards = computed(() => [
   { label: '평균 점수', value: averageScore.value, tone: 'green' },
   { label: '최고점', value: highestScore.value, tone: 'yellow' },
 ])
+const editProfilePreview = computed(() => {
+  if (profilePreviewUrl.value) return profilePreviewUrl.value
+  if (editImageBroken.value || isDefaultProfile(form.profile)) return ''
+  return form.profile
+})
 
 function formatScore(value) {
   const score = Number(value)
@@ -97,16 +105,51 @@ function normalizeGender(value) {
   return 'Male'
 }
 
+function isDefaultProfile(value) {
+  if (!value) return true
+  return String(value).endsWith('/default') || value === 'default'
+}
+
 function syncForm(member) {
   form.nickname = member?.nickname || ''
   form.age = member?.age || ''
   form.gender = normalizeGender(member?.gender)
   form.profile = member?.profile || ''
   imageBroken.value = false
+  editImageBroken.value = false
+}
+
+function clearProfileFile() {
+  selectedProfileFile.value = null
+
+  if (profilePreviewUrl.value) {
+    URL.revokeObjectURL(profilePreviewUrl.value)
+    profilePreviewUrl.value = ''
+  }
+}
+
+function handleProfileFileChange(event) {
+  const [file] = event.target.files || []
+
+  clearProfileFile()
+
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    errorMessage.value = '이미지 파일만 업로드할 수 있습니다.'
+    event.target.value = ''
+    return
+  }
+
+  errorMessage.value = ''
+  selectedProfileFile.value = file
+  profilePreviewUrl.value = URL.createObjectURL(file)
+  editImageBroken.value = false
 }
 
 function openEditModal() {
   syncForm(profile.value)
+  clearProfileFile()
   message.value = ''
   errorMessage.value = ''
   isEditModalOpen.value = true
@@ -114,6 +157,7 @@ function openEditModal() {
 
 function closeEditModal() {
   isEditModalOpen.value = false
+  clearProfileFile()
   message.value = ''
 }
 
@@ -145,9 +189,15 @@ async function saveProfile() {
   errorMessage.value = ''
 
   try {
-    await updateMyPage(form)
+    const profileImage = selectedProfileFile.value ? await uploadProfileImage(selectedProfileFile.value) : form.profile
+
+    await updateMyPage({
+      ...form,
+      profile: profileImage,
+    })
     profile.value = await fetchMyPage()
     syncForm(profile.value)
+    clearProfileFile()
     message.value = '회원 정보가 수정되었습니다.'
     isEditModalOpen.value = false
   } catch (error) {
@@ -178,6 +228,8 @@ async function withdrawMember() {
 }
 
 onMounted(loadProfile)
+
+onUnmounted(clearProfileFile)
 </script>
 
 <template>
@@ -301,7 +353,7 @@ onMounted(loadProfile)
     </div>
 
     <div v-if="isEditModalOpen" class="modal-backdrop" @click.self="closeEditModal">
-      <div class="card panel modal-panel" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title">
+      <div class="card panel modal-panel profile-edit-panel" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title">
         <div class="section-title-row">
           <h2 id="profile-edit-title">회원 정보 수정</h2>
           <button class="icon-button" type="button" aria-label="회원 정보 수정 창 닫기" @click="closeEditModal">
@@ -309,31 +361,53 @@ onMounted(loadProfile)
           </button>
         </div>
 
-        <form class="form" @submit.prevent="saveProfile">
+        <form class="form profile-edit-form" @submit.prevent="saveProfile">
           <div v-if="message" class="notice">{{ message }}</div>
           <div v-if="errorMessage" class="notice error">{{ errorMessage }}</div>
 
-          <div class="field">
-            <label for="nickname">이름</label>
-            <input id="nickname" v-model="form.nickname" required />
-          </div>
+          <div class="profile-edit-grid">
+            <div class="profile-edit-fields">
+              <div class="field">
+                <label for="nickname">이름</label>
+                <input id="nickname" v-model="form.nickname" required />
+              </div>
 
-          <div class="field">
-            <label for="age">생년월일</label>
-            <input id="age" v-model="form.age" type="date" required />
-          </div>
+              <div class="field">
+                <label for="age">생년월일</label>
+                <input id="age" v-model="form.age" type="date" required />
+              </div>
 
-          <div class="field">
-            <label for="gender">성별</label>
-            <select id="gender" v-model="form.gender" required>
-              <option value="Male">남성</option>
-              <option value="Female">여성</option>
-            </select>
-          </div>
+              <div class="field">
+                <label for="gender">성별</label>
+                <select id="gender" v-model="form.gender" required>
+                  <option value="Male">남성</option>
+                  <option value="Female">여성</option>
+                </select>
+              </div>
+            </div>
 
-          <div class="field">
-            <label for="profile">프로필 이미지 URL</label>
-            <input id="profile" v-model="form.profile" placeholder="비워두면 기본값으로 저장됩니다." />
+            <div class="profile-edit-image-panel">
+              <label for="profile">프로필 이미지</label>
+              <div class="profile-upload profile-upload-large">
+                <div class="profile-upload-preview">
+                  <img
+                    v-if="editProfilePreview"
+                    :src="editProfilePreview"
+                    alt="프로필 이미지 미리보기"
+                    @error="editImageBroken = true"
+                  />
+                  <span v-else>{{ form.nickname.slice(0, 1) || '?' }}</span>
+                </div>
+                <input
+                  id="profile"
+                  class="profile-upload-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  @change="handleProfileFileChange"
+                />
+                <p class="muted">새 이미지를 선택하면 저장 시 프로필 이미지가 변경됩니다.</p>
+              </div>
+            </div>
           </div>
 
           <div class="create-actions">
