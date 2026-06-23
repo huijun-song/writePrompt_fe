@@ -399,6 +399,22 @@ main {
   background: white;
 }
 
+.button.danger {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fff1f2;
+}
+
+.button.danger:hover {
+  background: #ffe4e6;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+}
+
 .button.full {
   width: 100%;
 }
@@ -781,6 +797,9 @@ main {
 }
 
 .profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   min-height: 360px;
   padding: 38px 32px;
   text-align: center;
@@ -805,6 +824,14 @@ main {
   background: #6366f1;
   font-size: 38px;
   font-weight: 900;
+}
+
+.profile-actions {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 34px;
 }
 
 .history-list {

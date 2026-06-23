@@ -1,4 +1,4 @@
-﻿import { getAccessToken, getCurrentMember, saveSession } from './session'
+﻿import { getAccessToken, getCurrentMember, logout as clearSession, saveSession } from './session'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
@@ -409,6 +409,16 @@ export async function updateMyPage(data) {
   return member
 }
 
+export async function deleteMyPage() {
+  try {
+    await request('/api/members/me', {
+      method: 'DELETE',
+    })
+  } finally {
+    clearSession()
+  }
+}
+
 export async function generatePrompt(data) {
   const payload = await request('/api/ai/prompt', {
     method: 'POST',
@@ -461,3 +471,4 @@ export function deleteQuizRoom(roomId) {
     method: 'DELETE',
   })
 }
+

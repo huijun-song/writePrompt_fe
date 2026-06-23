@@ -1,15 +1,18 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { fetchMyPage, updateMyPage } from '../services/api'
+import { useRouter } from 'vue-router'
+import { deleteMyPage, fetchMyPage, updateMyPage } from '../services/api'
 
 const loading = ref(true)
 const saving = ref(false)
+const deleting = ref(false)
 const errorMessage = ref('')
 const message = ref('')
 const profile = ref(null)
 const imageBroken = ref(false)
 const isEditModalOpen = ref(false)
 const selectedFeedback = ref(null)
+const router = useRouter()
 
 const form = reactive({
   nickname: '',
@@ -148,6 +151,26 @@ async function saveProfile() {
   }
 }
 
+async function withdrawMember() {
+  const confirmed = window.confirm('회원탈퇴를 진행하시겠습니까? 탈퇴 후에는 계정을 복구할 수 없습니다.')
+
+  if (!confirmed) return
+
+  deleting.value = true
+  message.value = ''
+  errorMessage.value = ''
+
+  try {
+    await deleteMyPage()
+    window.alert('회원탈퇴가 완료되었습니다.')
+    router.push('/login')
+  } catch (error) {
+    errorMessage.value = error.message
+  } finally {
+    deleting.value = false
+  }
+}
+
 onMounted(loadProfile)
 </script>
 
@@ -184,6 +207,11 @@ onMounted(loadProfile)
         <p v-if="profile.age" class="muted">생년월일: {{ profile.age }}</p>
         <p v-if="profile.gender" class="muted">성별: {{ profile.gender }}</p>
         <p v-if="profile.createdTime" class="muted">가입일: {{ formatDate(profile.createdTime) }}</p>
+        <div class="profile-actions">
+          <button class="button danger compact" type="button" :disabled="deleting" @click="withdrawMember">
+            {{ deleting ? '탈퇴 처리 중' : '회원탈퇴' }}
+          </button>
+        </div>
       </aside>
 
       <div>
