@@ -2,6 +2,8 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { getCurrentMember } from '../services/session'
 
+const guideVideoUrl = ''
+
 const quizShots = [
   { label: '미래 도시', className: 'shot-city' },
   { label: '숲속 로봇', className: 'shot-forest' },
@@ -41,7 +43,12 @@ const heroActions = computed(() => {
 
   return [
     { to: startPath.value, label: '퀴즈 시작하기', variant: 'primary' },
-    { to: '/quiz-rooms', label: '퀴즈룸 보기', variant: 'secondary' },
+    {
+      href: guideVideoUrl || '#',
+      label: '가이드 영상',
+      variant: 'secondary',
+      external: Boolean(guideVideoUrl),
+    },
   ]
 })
 
@@ -114,15 +121,26 @@ onUnmounted(() => {
             생성형 AI를 설명으로만 배우지 않고, 직접 관찰하고 정확하게 표현하며 익힙니다.
           </p>
           <div class="stripe-actions">
-            <RouterLink
-              v-for="action in heroActions"
-              :key="action.label"
-              class="stripe-button"
-              :class="`stripe-button-${action.variant}`"
-              :to="action.to"
-            >
-              {{ action.label }}
-            </RouterLink>
+            <template v-for="action in heroActions" :key="action.label">
+              <a
+                v-if="action.href"
+                class="stripe-button"
+                :class="`stripe-button-${action.variant}`"
+                :href="action.href"
+                :target="action.external ? '_blank' : undefined"
+                :rel="action.external ? 'noopener noreferrer' : undefined"
+              >
+                {{ action.label }}
+              </a>
+              <RouterLink
+                v-else
+                class="stripe-button"
+                :class="`stripe-button-${action.variant}`"
+                :to="action.to"
+              >
+                {{ action.label }}
+              </RouterLink>
+            </template>
           </div>
         </div>
 

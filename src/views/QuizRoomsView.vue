@@ -10,15 +10,21 @@ const rooms = ref([])
 const brokenThumbnails = ref({})
 
 const levelMap = {
-  BEGINNER: 'EASY',
-  INTERMEDIATE: 'NORMAL',
-  ADVANCED: 'HARD',
-  EASY: 'EASY',
-  NORMAL: 'NORMAL',
-  HARD: 'HARD',
+  BEGINNER: '초급',
+  EASY: '초급',
+  LOW: '초급',
+  초급: '초급',
+  INTERMEDIATE: '중급',
+  NORMAL: '중급',
+  MEDIUM: '중급',
+  중급: '중급',
+  ADVANCED: '고급',
+  HARD: '고급',
+  HIGH: '고급',
+  고급: '고급',
 }
 
-const levelOptions = ['ALL', 'EASY', 'NORMAL', 'HARD']
+const levelOptions = ['ALL', '초급', '중급', '고급']
 
 const filteredRooms = computed(() => {
   const keyword = query.value.trim().toLowerCase()
@@ -33,7 +39,9 @@ const filteredRooms = computed(() => {
 })
 
 function roomLevel(room) {
-  return levelMap[room?.level] || room?.level || ''
+  const level = room?.level?.trim?.() || room?.level
+  const normalizedLevel = typeof level === 'string' ? level.toUpperCase() : level
+  return levelMap[level] || levelMap[normalizedLevel] || level || ''
 }
 
 function imageClass(room, index) {
