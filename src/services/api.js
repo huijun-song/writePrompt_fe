@@ -115,11 +115,12 @@ async function request(path, options = {}) {
   const token = getAccessToken()
   const controller = new AbortController()
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs)
+  const isFormData = fetchOptions.body instanceof FormData
   const headers = {
     ...(fetchOptions.headers || {}),
   }
 
-  if (fetchOptions.body && !headers['Content-Type']) {
+  if (fetchOptions.body && !isFormData && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json'
   }
 
@@ -273,6 +274,25 @@ export function signup(data) {
     auth: false,
     body: JSON.stringify(payload),
   })
+}
+
+export async function uploadProfileImage(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const payload = await request('/api/uploads/profile', {
+    method: 'POST',
+    timeoutMs: 30000,
+    body: formData,
+  })
+  const data = getPayloadData(payload)
+  const imageUrl = typeof data === 'string' ? data : data?.imageUrl || data?.url || data?.fileUrl || data?.path
+
+  if (!imageUrl) {
+    throw new Error('업로드된 프로필 이미지 URL을 찾을 수 없습니다.')
+  }
+
+  return imageUrl
 }
 
 export async function fetchQuizRooms() {
