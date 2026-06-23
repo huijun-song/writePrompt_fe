@@ -36,8 +36,13 @@ const heroActions = computed(() => {
 
   if (member.role === 'TEACHER') {
     return [
-      { to: '/teacher', label: '교사 대시보드', variant: 'primary' },
-      { to: '/teacher', label: '퀴즈 만들기', variant: 'secondary' },
+      { to: '/teacher', label: '퀴즈 관리', variant: 'primary' },
+      {
+        href: guideVideoUrl || '#',
+        label: '가이드 영상',
+        variant: 'secondary',
+        external: Boolean(guideVideoUrl),
+      },
     ]
   }
 
