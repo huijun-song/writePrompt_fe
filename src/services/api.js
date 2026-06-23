@@ -213,6 +213,11 @@ export async function fetchTeacherQuizRooms() {
   return extractList(payload, ['quizRoomList', 'quizRooms', 'rooms'])
 }
 
+export async function fetchTeacherQuizRoom(id) {
+  const payload = await request(`/api/quizroom/${id}`)
+  return payload?.data ?? payload
+}
+
 export async function generateImage(prompt) {
   const payload = await request('/api/ai/image', {
     method: 'POST',

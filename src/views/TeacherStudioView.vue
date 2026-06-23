@@ -5,6 +5,7 @@ import {
   createQuizRoom,
   deleteQuiz,
   deleteQuizRoom,
+  fetchTeacherQuizRoom,
   fetchTeacherQuizRooms,
   fetchTeacherQuizzes,
   generateImage,
@@ -90,9 +91,153 @@ const selectedRoomQuizzes = computed(() =>
     .filter((item) => Number.isFinite(item.quizId)),
 )
 
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null)
+}
+
+function pickIdByKey(value, includeWords, excludeWords = []) {
+  if (!value || typeof value !== 'object') return undefined
+
+  for (const [key, id] of Object.entries(value)) {
+    if (id === undefined || id === null || typeof id === 'object') continue
+
+    const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const hasId = normalizedKey.endsWith('id') || normalizedKey.endsWith('no')
+    const includesTarget = includeWords.some((word) => normalizedKey.includes(word))
+    const includesExcluded = excludeWords.some((word) => normalizedKey.includes(word))
+
+    if (hasId && includesTarget && !includesExcluded) {
+      return id
+    }
+  }
+
+  return undefined
+}
+
+function pickAnyIdByKey(value, excludeWords = []) {
+  if (!value || typeof value !== 'object') return undefined
+
+  for (const [key, id] of Object.entries(value)) {
+    if (id === undefined || id === null || typeof id === 'object') continue
+
+    const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const hasIdShape = ['id', 'no', 'seq', 'pk'].includes(normalizedKey)
+      || normalizedKey.endsWith('id')
+      || normalizedKey.endsWith('no')
+      || normalizedKey.endsWith('idx')
+      || normalizedKey.endsWith('num')
+      || normalizedKey.endsWith('seq')
+      || normalizedKey.endsWith('pk')
+    const includesExcluded = excludeWords.some((word) => normalizedKey.includes(word))
+
+    if (hasIdShape && !includesExcluded) {
+      return id
+    }
+  }
+
+  return undefined
+}
+
+function getQuizId(quiz, fallback = {}) {
+  return firstDefined(
+    quiz?.quizId,
+    quiz?.quizid,
+    quiz?.quizID,
+    quiz?.quiz_id,
+    quiz?.quizNo,
+    quiz?.quizno,
+    quiz?.quiz_no,
+    quiz?.qzId,
+    quiz?.qzid,
+    quiz?.no,
+    quiz?.idx,
+    quiz?.index,
+    quiz?.num,
+    quiz?.seq,
+    quiz?.pk,
+    quiz?.id,
+    pickIdByKey(quiz, ['quiz', 'qz'], ['room', 'user', 'member', 'teacher']),
+    pickAnyIdByKey(quiz, ['room', 'user', 'member', 'teacher', 'count', 'cnt', 'order', 'score']),
+    quiz?.quiz?.quizId,
+    quiz?.quiz?.quizid,
+    quiz?.quiz?.quiz_id,
+    quiz?.quiz?.quizNo,
+    quiz?.quiz?.no,
+    quiz?.quiz?.idx,
+    quiz?.quiz?.index,
+    quiz?.quiz?.num,
+    quiz?.quiz?.seq,
+    quiz?.quiz?.pk,
+    quiz?.quiz?.id,
+    pickIdByKey(quiz?.quiz, ['quiz', 'qz']),
+    pickAnyIdByKey(quiz?.quiz, ['room', 'user', 'member', 'teacher', 'count', 'cnt', 'order', 'score']),
+    fallback.quizId,
+    fallback.quizid,
+    fallback.quizID,
+    fallback.quiz_id,
+    fallback.quizNo,
+    fallback.quizno,
+    fallback.quiz_no,
+    fallback.qzId,
+    fallback.qzid,
+    fallback.no,
+    fallback.idx,
+    fallback.index,
+    fallback.num,
+    fallback.seq,
+    fallback.pk,
+    fallback.id,
+    pickIdByKey(fallback, ['quiz', 'qz'], ['room', 'user', 'member', 'teacher']),
+    pickAnyIdByKey(fallback, ['room', 'user', 'member', 'teacher', 'count', 'cnt', 'order', 'score']),
+  )
+}
+
+function getRoomId(room, fallback = {}) {
+  return firstDefined(
+    room?.quizRoomId,
+    room?.quizroomId,
+    room?.quizroomid,
+    room?.quizRoomID,
+    room?.quiz_room_id,
+    room?.quizRoomNo,
+    room?.quizroomNo,
+    room?.quiz_room_no,
+    room?.roomId,
+    room?.roomid,
+    room?.room_id,
+    room?.roomNo,
+    room?.roomno,
+    room?.room_no,
+    room?.no,
+    room?.seq,
+    room?.pk,
+    room?.id,
+    pickIdByKey(room, ['quizroom', 'room'], ['user', 'member', 'teacher', 'quizid']),
+    pickAnyIdByKey(room, ['quiz', 'user', 'member', 'teacher']),
+    fallback.quizRoomId,
+    fallback.quizroomId,
+    fallback.quizroomid,
+    fallback.quizRoomID,
+    fallback.quiz_room_id,
+    fallback.roomId,
+    fallback.roomid,
+    fallback.room_id,
+    fallback.roomNo,
+    fallback.roomno,
+    fallback.room_no,
+    fallback.no,
+    fallback.seq,
+    fallback.pk,
+    fallback.id,
+    pickIdByKey(fallback, ['quizroom', 'room'], ['user', 'member', 'teacher', 'quizid']),
+    pickAnyIdByKey(fallback, ['quiz', 'user', 'member', 'teacher']),
+  )
+}
+
 function normalizeQuiz(quiz, fallback = {}) {
   return {
-    id: quiz?.quizId || quiz?.id || fallback.id,
+    raw: quiz,
+    id: getQuizId(quiz, fallback),
     title: quiz?.title || fallback.title || '-',
     createdAt: quiz?.createdAt || quiz?.createdTime || fallback.createdAt || '-',
     level: quiz?.level || fallback.level || '중급',
@@ -104,7 +249,8 @@ function normalizeRoom(room, fallback = {}) {
   const quizList = room?.quizList || room?.quizzes || room?.quizRoomQuizList || fallback.quizList || []
 
   return {
-    id: room?.quizRoomId || room?.quizroomId || room?.id || fallback.id,
+    raw: room,
+    id: getRoomId(room, fallback),
     title: room?.title || room?.roomTitle || room?.name || fallback.title || '-',
     students: room?.studentCount || room?.students || room?.participantCount || room?.participantCnt || 0,
     plays: room?.solvedCount || room?.solvedCnt || room?.playCount || room?.plays || 0,
@@ -117,7 +263,20 @@ function normalizeRoom(room, fallback = {}) {
 }
 
 function getQuizIdFromRoomItem(item) {
-  return item?.quizId || item?.id || item?.quiz?.quizId || item?.quiz?.id
+  return getQuizId(item)
+}
+
+function fieldNames(value) {
+  if (!value || typeof value !== 'object') return ''
+
+  return Object.keys(value).slice(0, 12).join(', ')
+}
+
+function missingIdMessage(label, value) {
+  const fields = fieldNames(value?.raw || value)
+  return fields
+    ? `${label} ID가 목록 응답에 없습니다. 백엔드 /api/quiz 응답에 quizId를 포함해야 합니다. 현재 필드: ${fields}`
+    : `${label} ID가 목록 응답에 없습니다. 백엔드 /api/quiz 응답에 quizId를 포함해야 합니다.`
 }
 
 function getMemberId() {
@@ -176,7 +335,14 @@ function backToDashboard() {
 }
 
 function openEditQuiz(quiz) {
-  editingQuizId.value = quiz.id
+  const quizId = getQuizId(quiz, quiz.raw)
+
+  if (quizId === undefined || quizId === null) {
+    dashboardMessage.value = missingIdMessage('수정할 퀴즈', quiz)
+    return
+  }
+
+  editingQuizId.value = quizId
   editQuizForm.title = quiz.title || ''
   dashboardMessage.value = ''
 }
@@ -201,17 +367,36 @@ function openRoomModal() {
   isRoomModalOpen.value = true
 }
 
-function openEditRoom(room) {
+async function openEditRoom(room) {
+  const roomId = getRoomId(room, room.raw)
+
+  if (roomId === undefined || roomId === null) {
+    dashboardMessage.value = missingIdMessage('수정할 퀴즈룸', room)
+    return
+  }
+
   dashboardMessage.value = ''
-  editingRoomId.value = room.id
-  roomForm.title = room.title || ''
-  roomForm.level = room.level || '중급'
-  roomForm.description = room.description || ''
-  roomForm.state = room.state || 'CLOSED'
-  roomForm.selectedQuizIds = (room.quizList || [])
-    .map((item) => getQuizIdFromRoomItem(item))
-    .filter(Boolean)
-  isRoomModalOpen.value = true
+  editingRoomId.value = roomId
+
+  try {
+    loading.value = `editRoom:${roomId}`
+    const detail = await fetchTeacherQuizRoom(roomId)
+    const editableRoom = normalizeRoom(detail, room)
+
+    roomForm.title = editableRoom.title === '-' ? '' : editableRoom.title
+    roomForm.level = editableRoom.level || '중급'
+    roomForm.description = editableRoom.description || ''
+    roomForm.state = editableRoom.state || 'CLOSED'
+    roomForm.selectedQuizIds = (editableRoom.quizList || [])
+      .map((item) => getQuizIdFromRoomItem(item))
+      .filter((quizId) => quizId !== undefined && quizId !== null)
+    isRoomModalOpen.value = true
+  } catch (error) {
+    dashboardMessage.value = error.message
+    editingRoomId.value = null
+  } finally {
+    loading.value = ''
+  }
 }
 
 function closeRoomModal() {
@@ -220,7 +405,7 @@ function closeRoomModal() {
 }
 
 async function runUpdateQuiz() {
-  if (!editingQuizId.value) return
+  if (editingQuizId.value === undefined || editingQuizId.value === null) return
 
   loading.value = 'updateQuiz'
   dashboardMessage.value = ''
@@ -246,15 +431,22 @@ async function runUpdateQuiz() {
 }
 
 async function runDeleteQuiz(quiz) {
+  const quizId = getQuizId(quiz, quiz.raw)
+
+  if (quizId === undefined || quizId === null) {
+    dashboardMessage.value = missingIdMessage('삭제할 퀴즈', quiz)
+    return
+  }
+
   if (!window.confirm(`'${quiz.title}' 퀴즈를 삭제할까요?`)) return
 
-  loading.value = `deleteQuiz:${quiz.id}`
+  loading.value = `deleteQuiz:${quizId}`
   dashboardMessage.value = ''
 
   try {
-    await deleteQuiz(quiz.id)
-    teacherQuizzes.value = teacherQuizzes.value.filter((item) => item.id !== quiz.id)
-    if (editingQuizId.value === quiz.id) {
+    await deleteQuiz(quizId)
+    teacherQuizzes.value = teacherQuizzes.value.filter((item) => getQuizId(item, item.raw) !== quizId)
+    if (editingQuizId.value === quizId) {
       closeEditQuiz()
     }
     await loadTeacherQuizzes()
@@ -314,15 +506,22 @@ async function runSaveRoom() {
 }
 
 async function runDeleteRoom(room) {
+  const roomId = getRoomId(room, room.raw)
+
+  if (roomId === undefined || roomId === null) {
+    dashboardMessage.value = missingIdMessage('삭제할 퀴즈룸', room)
+    return
+  }
+
   if (!window.confirm(`'${room.title}' 퀴즈룸을 삭제할까요?`)) return
 
-  loading.value = `deleteRoom:${room.id}`
+  loading.value = `deleteRoom:${roomId}`
   dashboardMessage.value = ''
 
   try {
-    await deleteQuizRoom(room.id)
-    teacherRooms.value = teacherRooms.value.filter((item) => item.id !== room.id)
-    if (editingRoomId.value === room.id) {
+    await deleteQuizRoom(roomId)
+    teacherRooms.value = teacherRooms.value.filter((item) => getRoomId(item, item.raw) !== roomId)
+    if (editingRoomId.value === roomId) {
       closeRoomModal()
     }
     await loadTeacherRooms()
@@ -457,7 +656,7 @@ onMounted(loadTeacherDashboard)
             </tr>
           </thead>
           <tbody>
-            <tr v-for="quiz in teacherQuizzes" :key="quiz.id">
+            <tr v-for="quiz in teacherQuizzes" :key="quiz.id ?? quiz.title">
               <td>{{ quiz.title }}</td>
               <td>{{ quiz.level }}</td>
               <td>{{ quiz.createdAt }}</td>
@@ -493,7 +692,6 @@ onMounted(loadTeacherDashboard)
           <thead>
             <tr>
               <th>룸 이름</th>
-              <th>참여 학생</th>
               <th>풀이수</th>
               <th>좋아요</th>
               <th>상태</th>
@@ -501,9 +699,8 @@ onMounted(loadTeacherDashboard)
             </tr>
           </thead>
           <tbody>
-            <tr v-for="room in teacherRooms" :key="room.id">
+            <tr v-for="room in teacherRooms" :key="room.id ?? room.title">
               <td>{{ room.title }}</td>
-              <td>{{ room.students }}명</td>
               <td class="number blue">{{ room.plays }}</td>
               <td class="number pink">{{ room.likes }}</td>
               <td>
@@ -525,7 +722,7 @@ onMounted(loadTeacherDashboard)
               </td>
             </tr>
             <tr v-if="teacherRooms.length === 0">
-              <td class="empty-table-cell" colspan="6">서버에서 조회된 퀴즈룸이 없습니다.</td>
+              <td class="empty-table-cell" colspan="5">서버에서 조회된 퀴즈룸이 없습니다.</td>
             </tr>
           </tbody>
         </table>
@@ -573,7 +770,7 @@ onMounted(loadTeacherDashboard)
             <label>포함할 퀴즈</label>
             <div v-if="teacherQuizzes.length === 0" class="notice">먼저 퀴즈를 생성해주세요.</div>
             <div v-else class="quiz-pick-list">
-              <label v-for="quiz in teacherQuizzes" :key="quiz.id" class="quiz-pick-item">
+              <label v-for="quiz in teacherQuizzes" :key="quiz.id ?? quiz.title" class="quiz-pick-item">
                 <input v-model="roomForm.selectedQuizIds" type="checkbox" :value="quiz.id" />
                 <span>{{ quiz.title }}</span>
               </label>
