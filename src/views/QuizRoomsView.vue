@@ -6,6 +6,7 @@ const loading = ref(true)
 const errorMessage = ref('')
 const query = ref('')
 const rooms = ref([])
+const brokenThumbnails = ref({})
 
 const levelMap = {
   BEGINNER: '초급',
@@ -26,6 +27,27 @@ function imageClass(room, index) {
 
 function roomId(room) {
   return room.quizRoomId || room.quizroomId || room.id
+}
+
+function thumbnailKey(room, index) {
+  return roomId(room) || `room-${index}`
+}
+
+function quizOrder(quiz, index) {
+  const order = Number(quiz?.quizOrder || quiz?.order || quiz?.sequence || quiz?.seq)
+  return Number.isFinite(order) ? order : index + 1
+}
+
+function firstQuiz(room) {
+  const quizzes = Array.isArray(room?.quizList) ? room.quizList : []
+  return quizzes
+    .map((quiz, index) => ({ quiz, order: quizOrder(quiz, index) }))
+    .sort((a, b) => a.order - b.order)[0]?.quiz
+}
+
+function roomThumbnail(room) {
+  const quiz = firstQuiz(room)
+  return quiz?.image || quiz?.imageUrl || quiz?.url || quiz?.quiz?.image || quiz?.quiz?.imageUrl || quiz?.quiz?.url || ''
 }
 
 function quizCount(room) {
@@ -66,7 +88,13 @@ onMounted(async () => {
     <div v-else class="quiz-grid">
       <article v-for="(room, index) in filteredRooms" :key="roomId(room)" class="card quiz-card">
         <div class="quiz-image" :class="imageClass(room, index)">
-          {{ room.title }}
+          <img
+            v-if="roomThumbnail(room) && !brokenThumbnails[thumbnailKey(room, index)]"
+            :src="roomThumbnail(room)"
+            :alt="firstQuiz(room)?.title || room.title"
+            @error="brokenThumbnails[thumbnailKey(room, index)] = true"
+          />
+          <span v-else>{{ room.title }}</span>
         </div>
         <div class="quiz-body">
           <div class="chip-row">

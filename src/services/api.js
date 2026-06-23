@@ -33,6 +33,17 @@ function normalizeOptionalImageUrl(data) {
   }
 }
 
+function normalizeQuizImage(quiz) {
+  return {
+    ...quiz,
+    image: normalizeOptionalImageUrl(quiz?.image || quiz?.imageUrl || quiz?.url || quiz?.quiz?.image || quiz?.quiz?.imageUrl || quiz?.quiz?.url),
+  }
+}
+
+function normalizeQuizList(quizList) {
+  return (quizList || []).map((quiz) => normalizeQuizImage(quiz))
+}
+
 function toApiImagePath(imageUrl) {
   if (!imageUrl) return imageUrl
 
@@ -267,10 +278,13 @@ export async function fetchQuizRooms() {
         return {
           ...room,
           ...detail,
-          quizList: detail?.quizList || room?.quizList || [],
+          quizList: normalizeQuizList(detail?.quizList || room?.quizList || []),
         }
       } catch {
-        return room
+        return {
+          ...room,
+          quizList: normalizeQuizList(room?.quizList || []),
+        }
       }
     }),
   )
@@ -282,10 +296,7 @@ export async function fetchQuizRoom(id) {
 
   return {
     ...room,
-    quizList: (room?.quizList || []).map((quiz) => ({
-      ...quiz,
-      image: normalizeOptionalImageUrl(quiz.image || quiz.imageUrl || quiz.url),
-    })),
+    quizList: normalizeQuizList(room?.quizList || []),
   }
 }
 
