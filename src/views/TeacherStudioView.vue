@@ -25,6 +25,11 @@ const generatedImage = ref('')
 const editingQuizId = ref(null)
 const editingRoomId = ref(null)
 const isRoomModalOpen = ref(false)
+const selectedQuiz = ref(null)
+const selectedQuizImageBroken = ref(false)
+const selectedRoom = ref(null)
+const roomPreviewIndex = ref(0)
+const roomPreviewImageBroken = ref(false)
 
 const teacherQuizzes = ref([])
 const teacherRooms = ref([])
@@ -53,7 +58,7 @@ const editQuizForm = reactive({
 
 const roomForm = reactive({
   title: '',
-  level: '중급',
+  level: '초급',
   description: '',
   state: 'CLOSED',
   selectedQuizIds: [],
@@ -90,6 +95,9 @@ const selectedRoomQuizzes = computed(() =>
     .map((quizId, index) => ({ quizId: Number(quizId), quizOrder: index + 1 }))
     .filter((item) => Number.isFinite(item.quizId)),
 )
+
+const roomPreviewQuizzes = computed(() => selectedRoom.value?.quizList || [])
+const currentRoomPreviewQuiz = computed(() => roomPreviewQuizzes.value[roomPreviewIndex.value])
 
 function firstDefined(...values) {
   return values.find((value) => value !== undefined && value !== null)
@@ -238,10 +246,10 @@ function normalizeQuiz(quiz, fallback = {}) {
   return {
     raw: quiz,
     id: getQuizId(quiz, fallback),
-    title: quiz?.title || fallback.title || '-',
+    title: quiz?.title || quiz?.quiz?.title || fallback.title || fallback.quiz?.title || '-',
     createdAt: quiz?.createdAt || quiz?.createdTime || fallback.createdAt || '-',
-    level: quiz?.level || fallback.level || '중급',
-    image: quiz?.image || quiz?.imageUrl || fallback.image || '',
+    level: quiz?.level || quiz?.quiz?.level || fallback.level || fallback.quiz?.level || '중급',
+    image: quiz?.image || quiz?.imageUrl || quiz?.url || quiz?.quiz?.image || quiz?.quiz?.imageUrl || quiz?.quiz?.url || fallback.image || '',
   }
 }
 
@@ -256,14 +264,14 @@ function normalizeRoom(room, fallback = {}) {
     plays: room?.solvedCount || room?.solvedCnt || room?.playCount || room?.plays || 0,
     likes: room?.likeCount || room?.likeCnt || room?.likes || room?.like || 0,
     state: room?.state || fallback.state || 'CLOSED',
-    level: room?.level || fallback.level || '중급',
+    level: room?.level || fallback.level || '초급',
     description: room?.description || fallback.description || '',
-    quizList,
+    quizList: quizList.map((quiz) => normalizeQuiz(quiz)),
   }
 }
 
 function getQuizIdFromRoomItem(item) {
-  return getQuizId(item)
+  return item?.id ?? getQuizId(item?.raw || item, item)
 }
 
 function fieldNames(value) {
@@ -352,9 +360,54 @@ function closeEditQuiz() {
   editQuizForm.title = ''
 }
 
+function openQuizPreview(quiz) {
+  selectedQuiz.value = quiz
+  selectedQuizImageBroken.value = false
+}
+
+function closeQuizPreview() {
+  selectedQuiz.value = null
+  selectedQuizImageBroken.value = false
+}
+
+async function openRoomPreview(room) {
+  const roomId = getRoomId(room, room.raw)
+  selectedRoom.value = room
+  roomPreviewIndex.value = 0
+  roomPreviewImageBroken.value = false
+
+  if (roomId === undefined || roomId === null) {
+    return
+  }
+
+  try {
+    loading.value = `previewRoom:${roomId}`
+    const detail = await fetchTeacherQuizRoom(roomId)
+    selectedRoom.value = normalizeRoom(detail, room)
+  } catch (error) {
+    dashboardMessage.value = error.message
+  } finally {
+    loading.value = ''
+  }
+}
+
+function closeRoomPreview() {
+  selectedRoom.value = null
+  roomPreviewIndex.value = 0
+  roomPreviewImageBroken.value = false
+}
+
+function moveRoomPreview(direction) {
+  const total = roomPreviewQuizzes.value.length
+  if (!total) return
+
+  roomPreviewIndex.value = (roomPreviewIndex.value + direction + total) % total
+  roomPreviewImageBroken.value = false
+}
+
 function resetRoomForm() {
   roomForm.title = ''
-  roomForm.level = '중급'
+  roomForm.level = '초급'
   roomForm.description = ''
   roomForm.state = 'CLOSED'
   roomForm.selectedQuizIds = []
@@ -384,7 +437,7 @@ async function openEditRoom(room) {
     const editableRoom = normalizeRoom(detail, room)
 
     roomForm.title = editableRoom.title === '-' ? '' : editableRoom.title
-    roomForm.level = editableRoom.level || '중급'
+    roomForm.level = editableRoom.level || '초급'
     roomForm.description = editableRoom.description || ''
     roomForm.state = editableRoom.state || 'CLOSED'
     roomForm.selectedQuizIds = (editableRoom.quizList || [])
@@ -603,7 +656,7 @@ onMounted(loadTeacherDashboard)
   <section v-if="view === 'dashboard'" class="page teacher-page">
     <div class="teacher-head">
       <div>
-        <h1 class="page-title">교사 대시보드</h1>
+        <h1 class="page-title">퀴즈 관리</h1>
         <p class="page-subtitle">내 퀴즈와 학생에게 배포할 퀴즈룸을 관리합니다.</p>
       </div>
     </div>
@@ -654,7 +707,11 @@ onMounted(loadTeacherDashboard)
           </thead>
           <tbody>
             <tr v-for="quiz in teacherQuizzes" :key="quiz.id ?? quiz.title">
-              <td>{{ quiz.title }}</td>
+              <td>
+                <button class="table-link-button" type="button" @click="openQuizPreview(quiz)">
+                  {{ quiz.title }}
+                </button>
+              </td>
               <td>{{ quiz.level }}</td>
               <td>{{ quiz.createdAt }}</td>
               <td class="actions-cell">
@@ -697,7 +754,11 @@ onMounted(loadTeacherDashboard)
           </thead>
           <tbody>
             <tr v-for="room in teacherRooms" :key="room.id ?? room.title">
-              <td>{{ room.title }}</td>
+              <td>
+                <button class="table-link-button" type="button" @click="openRoomPreview(room)">
+                  {{ room.title }}
+                </button>
+              </td>
               <td class="number blue">{{ room.plays }}</td>
               <td class="number pink">{{ room.likes }}</td>
               <td>
@@ -725,6 +786,71 @@ onMounted(loadTeacherDashboard)
         </table>
       </div>
     </section>
+
+    <div v-if="selectedQuiz" class="modal-backdrop" @click.self="closeQuizPreview">
+      <div class="card panel modal-panel quiz-preview-panel" role="dialog" aria-modal="true" aria-labelledby="quiz-preview-title">
+        <div class="section-title-row">
+          <h2 id="quiz-preview-title">{{ selectedQuiz.title }}</h2>
+          <button class="icon-button" type="button" aria-label="퀴즈 이미지 창 닫기" @click="closeQuizPreview">닫기</button>
+        </div>
+
+        <div class="quiz-preview-image">
+          <img
+            v-if="selectedQuiz.image && !selectedQuizImageBroken"
+            :src="selectedQuiz.image"
+            :alt="selectedQuiz.title"
+            @error="selectedQuizImageBroken = true"
+          />
+          <div v-else class="empty-image">이미지가 없습니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="selectedRoom" class="modal-backdrop" @click.self="closeRoomPreview">
+      <div class="card panel modal-panel quiz-preview-panel" role="dialog" aria-modal="true" aria-labelledby="room-preview-title">
+        <div class="section-title-row">
+          <div>
+            <h2 id="room-preview-title">{{ selectedRoom.title }}</h2>
+            <p class="muted">{{ roomPreviewQuizzes.length ? `${roomPreviewIndex + 1} / ${roomPreviewQuizzes.length}` : '포함된 퀴즈가 없습니다.' }}</p>
+          </div>
+          <button class="icon-button" type="button" aria-label="퀴즈룸 이미지 창 닫기" @click="closeRoomPreview">닫기</button>
+        </div>
+
+        <div class="room-preview-stage">
+          <button
+            class="preview-nav-button"
+            type="button"
+            aria-label="이전 이미지"
+            :disabled="roomPreviewQuizzes.length <= 1"
+            @click="moveRoomPreview(-1)"
+          >
+            ‹
+          </button>
+
+          <div class="quiz-preview-image">
+            <img
+              v-if="currentRoomPreviewQuiz?.image && !roomPreviewImageBroken"
+              :src="currentRoomPreviewQuiz.image"
+              :alt="currentRoomPreviewQuiz.title"
+              @error="roomPreviewImageBroken = true"
+            />
+            <div v-else class="empty-image">이미지가 없습니다.</div>
+          </div>
+
+          <button
+            class="preview-nav-button"
+            type="button"
+            aria-label="다음 이미지"
+            :disabled="roomPreviewQuizzes.length <= 1"
+            @click="moveRoomPreview(1)"
+          >
+            ›
+          </button>
+        </div>
+
+        <p v-if="currentRoomPreviewQuiz" class="room-preview-caption">{{ currentRoomPreviewQuiz.title }}</p>
+      </div>
+    </div>
 
     <div v-if="isRoomModalOpen" class="modal-backdrop" @click.self="closeRoomModal">
       <div class="card panel room-builder modal-panel" role="dialog" aria-modal="true" aria-labelledby="room-modal-title">

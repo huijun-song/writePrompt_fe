@@ -19,7 +19,7 @@ const navItems = computed(() => {
   const items = []
 
   if (isTeacher.value) {
-    items.push({ to: '/teacher', label: '교사 대시보드' })
+    items.push({ to: '/teacher', label: '퀴즈 관리' })
   } else {
     items.push({ to: '/quiz-rooms', label: '퀴즈 목록' })
   }
