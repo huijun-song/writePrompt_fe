@@ -92,6 +92,7 @@ onMounted(async () => {
 <template>
   <section class="page">
     <CelebrationEffects ref="celebrationEffects" />
+
     <p v-if="loading" class="muted">퀴즈룸에 입장하는 중입니다.</p>
     <div v-else-if="errorMessage && !room" class="notice error">{{ errorMessage }}</div>
 
