@@ -163,7 +163,7 @@ onMounted(async () => {
             </span>
           </div>
           <h2>{{ room.title }}</h2>
-          <p>{{ room.description }}</p>
+          <p class="quiz-description">{{ room.description }}</p>
           <RouterLink class="button primary full" :to="`/play/${roomId(room)}`">
             퀴즈 시작하기
           </RouterLink>
