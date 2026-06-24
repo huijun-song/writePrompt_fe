@@ -87,7 +87,7 @@ const keywordGroups = [
 const stats = computed(() => [
   { label: '생성된 퀴즈', value: teacherQuizzes.value.length },
   { label: '활성 퀴즈룸', value: teacherRooms.value.filter((room) => room.state === 'OPEN').length },
-  { label: '참여 학생', value: teacherRooms.value.reduce((sum, room) => sum + (room.students || 0), 0) },
+  { label: '총 풀이 수', value: teacherRooms.value.reduce((sum, room) => sum + (room.plays || 0), 0) },
 ])
 
 const selectedRoomQuizzes = computed(() =>
@@ -242,13 +242,41 @@ function getRoomId(room, fallback = {}) {
   )
 }
 
+function formatDisplayDate(value) {
+  if (!value) return '-'
+  return String(value).split('T')[0].slice(0, 10) || '-'
+}
+
+function displayLevel(value) {
+  const level = String(value || '').trim()
+  const upperLevel = level.toUpperCase()
+  const levelMap = {
+    BEGINNER: '초급',
+    EASY: '초급',
+    LOW: '초급',
+    초급: '초급',
+    INTERMEDIATE: '중급',
+    NORMAL: '중급',
+    MEDIUM: '중급',
+    중급: '중급',
+    ADVANCED: '고급',
+    HARD: '고급',
+    HIGH: '고급',
+    고급: '고급',
+  }
+
+  return levelMap[level] || levelMap[upperLevel] || level || '중급'
+}
+
 function normalizeQuiz(quiz, fallback = {}) {
+  const level = quiz?.level || quiz?.quiz?.level || fallback.level || fallback.quiz?.level || '중급'
+
   return {
     raw: quiz,
     id: getQuizId(quiz, fallback),
     title: quiz?.title || quiz?.quiz?.title || fallback.title || fallback.quiz?.title || '-',
-    createdAt: quiz?.createdAt || quiz?.createdTime || fallback.createdAt || '-',
-    level: quiz?.level || quiz?.quiz?.level || fallback.level || fallback.quiz?.level || '중급',
+    createdAt: formatDisplayDate(quiz?.createdAt || quiz?.createdTime || fallback.createdAt),
+    level: displayLevel(level),
     image: quiz?.image || quiz?.imageUrl || quiz?.url || quiz?.quiz?.image || quiz?.quiz?.imageUrl || quiz?.quiz?.url || fallback.image || '',
   }
 }
@@ -264,7 +292,7 @@ function normalizeRoom(room, fallback = {}) {
     plays: room?.solvedCount || room?.solvedCnt || room?.playCount || room?.plays || 0,
     likes: room?.likeCount || room?.likeCnt || room?.likes || room?.like || 0,
     state: room?.state || fallback.state || 'CLOSED',
-    level: room?.level || fallback.level || '초급',
+    level: displayLevel(room?.level || fallback.level || '초급'),
     description: room?.description || fallback.description || '',
     quizList: quizList.map((quiz) => normalizeQuiz(quiz)),
   }
@@ -657,14 +685,13 @@ onMounted(loadTeacherDashboard)
     <div class="teacher-head">
       <div>
         <h1 class="page-title">퀴즈 관리</h1>
-        <p class="page-subtitle">내 퀴즈와 학생에게 배포할 퀴즈룸을 관리합니다.</p>
       </div>
     </div>
 
     <div class="teacher-stats">
       <article v-for="stat in stats" :key="stat.label" class="card stat-card teacher-stat">
-        <p class="stat-value">{{ stat.value }}</p>
         <p>{{ stat.label }}</p>
+        <p class="stat-value">{{ stat.value }}</p>
       </article>
     </div>
 

@@ -1,13 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=Jua&display=swap");
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+@font-face {
+  font-family: "Netmarble";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.1/netmarbleL.woff") format("woff");
+  font-weight: 300;
+  font-display: swap;
+  unicode-range: U+0020-007E;
+}
+
+@font-face {
+  font-family: "Netmarble";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.1/netmarbleM.woff") format("woff");
+  font-weight: 500;
+  font-display: swap;
+  unicode-range: U+0020-007E;
+}
+
+@font-face {
+  font-family: "Netmarble";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.1/netmarbleB.woff") format("woff");
+  font-weight: 700;
+  font-display: swap;
+  unicode-range: U+0020-007E;
+}
+
 :root {
+  --font-body: "Netmarble", "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Netmarble", "Jua", "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #111827;
   background: #f3f4f6;
-  font-family:
-    Inter,
-    Pretendard,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: var(--font-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -21,17 +44,53 @@ body {
   min-height: 100vh;
   margin: 0;
   background: #f3f4f6;
+  font-family: var(--font-body);
 }
 
-button,
 input,
 select,
 textarea {
-  font: inherit;
+  font-family: var(--font-body);
+}
+
+button {
+  font-family: var(--font-display);
 }
 
 button {
   cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+.title,
+.page-title,
+.card-title,
+.brand,
+.button,
+.nav-button,
+.nav-links a,
+.quiz-card h2,
+.landing-hero h1,
+.hero h1,
+.result-room-card h2,
+.result-feedback-card h2,
+.section-title-row h2,
+.stripe-button,
+.generate-button,
+.preview-nav-button,
+.profile-upload-button,
+.table-link-button,
+.icon-button {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+label,
+input::placeholder,
+textarea::placeholder {
+  font-family: var(--font-body);
 }
 
 a {
@@ -73,7 +132,7 @@ a {
   align-items: center;
   gap: 11px;
   color: #0f172a;
-  font-size: 19px;
+  font-size: 22px;
   font-weight: 900;
   line-height: 1;
 }
@@ -109,7 +168,7 @@ a {
   appearance: none;
   color: #475569;
   background: transparent;
-  font-size: 15px;
+  font-size: 18px;
   line-height: 1;
   transition:
     color 0.18s ease,
@@ -120,7 +179,7 @@ a {
 .nav-button::after {
   position: absolute;
   right: 0;
-  bottom: 1px;
+  bottom: 0;
   left: 0;
   height: 3px;
   border-radius: 999px;
@@ -199,6 +258,7 @@ main.bubble-main > .bubble-field {
   width: min(1200px, calc(100% - 48px));
   margin: 0 auto;
   padding: 64px 0;
+  font-size: 17px;
 }
 
 .page-title {
@@ -210,7 +270,7 @@ main.bubble-main > .bubble-field {
 .page-subtitle {
   margin: 16px 0 0;
   color: #6b7280;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .landing-page {
@@ -463,6 +523,10 @@ main.bubble-main > .bubble-field {
     background 0.18s ease;
 }
 
+.page .button {
+  font-size: 17px;
+}
+
 .button:hover {
   transform: translateY(-1px);
 }
@@ -578,7 +642,7 @@ main.bubble-main > .bubble-field {
 .quiz-card h2,
 .panel h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .feature-card p,
@@ -635,7 +699,7 @@ main.bubble-main > .bubble-field {
 
 .field label {
   color: #374151;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -648,6 +712,7 @@ main.bubble-main > .bubble-field {
   padding: 15px 16px;
   color: #111827;
   background: white;
+  font-size: 16px;
   outline: none;
 }
 
@@ -706,7 +771,7 @@ main.bubble-main > .bubble-field {
   padding: 10px 18px;
   color: #374151;
   background: white;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
   cursor: pointer;
@@ -729,7 +794,7 @@ main.bubble-main > .bubble-field {
   margin: -2px auto 0;
   overflow: hidden;
   color: #64748b;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   text-align: center;
   text-overflow: ellipsis;
@@ -946,7 +1011,7 @@ main.bubble-main > .bubble-field {
   gap: 12px;
   margin-bottom: 14px;
   color: #64748b;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -957,7 +1022,7 @@ main.bubble-main > .bubble-field {
   padding: 6px 12px;
   color: #4f46e5;
   background: #eef2ff;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -1548,11 +1613,36 @@ main.bubble-main > .bubble-field {
   text-align: center;
 }
 
+.profile-role {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.profile-role span {
+  font-size: 21px;
+  line-height: 1;
+}
+
+.profile-meta-bottom {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 34px;
+}
+
 .profile-divider {
   width: 100%;
-  margin: 22px 0;
+  margin: 22px 0 0;
   border: 0;
   border-top: 1px solid #e5e7eb;
+}
+
+.profile-meta-bottom .muted {
+  margin: 0;
 }
 
 .profile-avatar {
@@ -1573,8 +1663,7 @@ main.bubble-main > .bubble-field {
   display: flex;
   width: 100%;
   justify-content: center;
-  margin-top: auto;
-  padding-top: 34px;
+  margin-top: 16px;
 }
 
 .history-list {
@@ -1621,11 +1710,30 @@ main.bubble-main > .bubble-field {
 }
 
 .mypage-page .stat-card {
+  display: grid;
+  align-content: space-between;
+  gap: 18px;
   min-height: 146px;
   padding: 34px 30px;
 }
 
+.mypage-page .stat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #374151;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.mypage-page .stat-label span {
+  font-size: 22px;
+  line-height: 1;
+}
+
 .mypage-page .stat-value {
+  margin-top: 0;
   font-size: 42px;
 }
 
@@ -1634,22 +1742,59 @@ main.bubble-main > .bubble-field {
   padding: 0;
 }
 
-.feedback-preview {
-  display: block;
-  max-width: 420px;
-  overflow: hidden;
-  border: 0;
-  padding: 0;
-  color: #374151;
-  background: transparent;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 700;
+.history-table .teacher-table th,
+.history-table .teacher-table td {
+  vertical-align: middle;
+  text-align: center;
 }
 
-.feedback-preview:hover {
+.history-table .teacher-table th:first-child,
+.history-table .teacher-table td:first-child {
+  width: 38%;
+}
+
+.history-table .teacher-table th:not(:first-child),
+.history-table .teacher-table td:not(:first-child) {
+  width: 15.5%;
+}
+
+.history-room-title {
+  max-width: 420px;
+  overflow: hidden;
+  color: #111827;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.feedback-view-button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  padding: 0 16px;
   color: #4f46e5;
+  background: #eef2ff;
+  font-size: 15px;
+  font-weight: 800;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.feedback-view-button:not(:disabled):hover {
+  border-color: #818cf8;
+  background: #e0e7ff;
+  transform: translateY(-1px);
+}
+
+.feedback-view-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .feedback-full {
@@ -1658,6 +1803,30 @@ main.bubble-main > .bubble-field {
   font-size: 16px;
   line-height: 1.75;
   white-space: pre-wrap;
+}
+
+.feedback-close-button {
+  min-width: 74px;
+  min-height: 42px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #374151;
+  background: #ffffff;
+  font-size: 16px;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.feedback-close-button:hover {
+  border-color: #c7d2fe;
+  color: #4f46e5;
+  background: #eef2ff;
+  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.12);
+  transform: translateY(-1px);
 }
 
 .score-line-chart {
@@ -1721,20 +1890,42 @@ main.bubble-main > .bubble-field {
 }
 
 .score-trend-item {
+  position: relative;
   display: grid;
   gap: 4px;
+  min-height: 82px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
+  padding: 16px 92px 16px 14px;
   background: #ffffff;
-  padding: 12px;
 }
 
 .score-trend-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: block;
   font-weight: 800;
+}
+
+.score-trend-head span {
+  min-width: 0;
+  overflow: hidden;
+  color: #374151;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score-trend-head strong {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  color: #111827;
+  font-size: 30px;
+  line-height: 1;
+  text-align: right;
+  transform: translateY(-50%);
+}
+
+.score-trend-item .muted {
+  margin: 0;
 }
 
 .studio-grid {
@@ -1757,22 +1948,30 @@ main.bubble-main > .bubble-field {
 
 .teacher-stats {
   display: grid;
-  grid-template-columns: repeat(3, 140px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 22px;
   margin-top: 30px;
 }
 
 .teacher-stat {
-  min-height: 94px;
-  padding: 18px 16px;
+  display: grid;
+  min-height: 138px;
+  align-content: space-between;
+  padding: 30px 28px;
 }
 
 .teacher-stat p {
   margin: 0;
 }
 
+.teacher-stat p:not(.stat-value) {
+  color: #374151;
+  font-size: 18px;
+  font-weight: 800;
+}
+
 .teacher-stat .stat-value {
-  font-size: 30px;
+  font-size: 42px;
 }
 
 .teacher-section {
@@ -1793,9 +1992,9 @@ main.bubble-main > .bubble-field {
 }
 
 .button.compact {
-  min-height: 38px;
+  min-height: 40px;
   padding: 0 16px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .table-card {
@@ -1813,7 +2012,7 @@ main.bubble-main > .bubble-field {
   border-bottom: 1px solid #e5e7eb;
   padding: 17px 16px;
   text-align: left;
-  font-size: 14px;
+  font-size: 15px;
   white-space: nowrap;
 }
 
@@ -1821,6 +2020,20 @@ main.bubble-main > .bubble-field {
   color: #111827;
   background: #f3f4f6;
   font-weight: 900;
+}
+
+.teacher-section .teacher-table th,
+.teacher-section .teacher-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.teacher-section .table-link-button {
+  text-align: center;
+}
+
+.teacher-section .actions-cell {
+  justify-content: center;
 }
 
 .teacher-table tr:last-child td {
@@ -2210,18 +2423,7 @@ main.bubble-main > .bubble-field {
 }
 
 .hero-color-field {
-  position: absolute;
-  top: -245px;
-  right: -12vw;
-  left: -10vw;
-  height: 560px;
-  transform: skewY(-11deg);
-  transform-origin: 0 0;
-  background:
-    radial-gradient(circle at 12% 34%, rgba(0, 212, 255, 0.92) 0 13%, transparent 32%),
-    radial-gradient(circle at 42% 28%, rgba(124, 58, 237, 0.92) 0 16%, transparent 34%),
-    radial-gradient(circle at 72% 46%, rgba(249, 115, 22, 0.86) 0 14%, transparent 33%),
-    linear-gradient(90deg, #00d4ff 0%, #7c3aed 42%, #f97316 100%);
+  display: none;
 }
 
 .stripe-hero-grid {
@@ -2241,7 +2443,7 @@ main.bubble-main > .bubble-field {
   align-items: center;
   min-height: 28px;
   color: #635bff;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 900;
   letter-spacing: 0;
 }
@@ -2484,7 +2686,8 @@ main.bubble-main > .bubble-field {
 .code-panel span {
   color: #6b7c93;
   font-size: 12px;
-  font-weight: 900;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 800;
 }
 
 .score-panel strong {
@@ -2524,8 +2727,10 @@ main.bubble-main > .bubble-field {
 
 .code-panel code {
   color: white;
-  font-size: 13px;
-  font-weight: 800;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.55;
   white-space: normal;
 }
 

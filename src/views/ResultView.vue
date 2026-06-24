@@ -3,12 +3,15 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import CelebrationEffects from '../components/CelebrationEffects.vue'
 import { fetchQuizRoom, increaseQuizRoomLike } from '../services/api'
+import { getCurrentMember } from '../services/session'
 
 const route = useRoute()
 const stored = sessionStorage.getItem(`result:${route.params.id}`)
 const storedResult = stored ? JSON.parse(stored) : null
 const result = storedResult?.data || storedResult
-const likedKey = `liked:${route.params.id}`
+const currentMember = getCurrentMember()
+const memberLikeKey = currentMember?.id || currentMember?.memberId || currentMember?.email || 'guest'
+const likedKey = `liked:${memberLikeKey}:${route.params.id}`
 
 const liking = ref(false)
 const liked = ref(sessionStorage.getItem(likedKey) === 'true')

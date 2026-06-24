@@ -25,7 +25,8 @@ const form = reactive({
 })
 
 const initials = computed(() => profile.value?.nickname?.slice(0, 1) || '?')
-const roleLabel = computed(() => (profile.value?.role === 'TEACHER' ? '교사' : '학생'))
+const roleLabel = computed(() => (profile.value?.role === 'TEACHER' ? '선생' : '학생'))
+const roleEmoji = computed(() => (profile.value?.role === 'TEACHER' ? '🧑‍🏫' : '🎓'))
 const histories = computed(() => profile.value?.quizResults || [])
 const solvedCount = computed(() => profile.value?.solvedCount ?? histories.value.length)
 const averageScore = computed(() => formatScore(profile.value?.averageScore))
@@ -74,9 +75,9 @@ const trendPoints = computed(() => {
 
 const trendPolyline = computed(() => trendPoints.value.map((item) => `${item.x},${item.y}`).join(' '))
 const statCards = computed(() => [
-  { label: '푼 문제수', value: solvedCount.value, tone: 'blue' },
-  { label: '평균 점수', value: averageScore.value, tone: 'green' },
-  { label: '최고점', value: highestScore.value, tone: 'yellow' },
+  { label: '푼 문제 수', emoji: '✏️', value: solvedCount.value, tone: 'blue' },
+  { label: '평균 점수', emoji: '📊', value: averageScore.value, tone: 'green' },
+  { label: '최고점', emoji: '🏆', value: highestScore.value, tone: 'yellow' },
 ])
 const editProfilePreview = computed(() => {
   if (profilePreviewUrl.value) return profilePreviewUrl.value
@@ -96,7 +97,15 @@ function formatDate(value) {
 }
 
 function quizRoomLabel(item) {
-  return item.quizRoomTitle || `퀴즈룸 #${item.quizRoomId}`
+  return (
+    item.quizRoomTitle ||
+    item.quizRoomName ||
+    item.roomTitle ||
+    item.roomName ||
+    item.quizRoom?.title ||
+    item.quizRoom?.name ||
+    '퀴즈룸명 없음'
+  )
 }
 
 function normalizeGender(value) {
@@ -237,7 +246,6 @@ onUnmounted(clearProfileFile)
     <div class="mypage-header">
       <div>
         <h1 class="page-title">마이페이지</h1>
-        <p class="page-subtitle">회원 정보와 학습 기록을 확인합니다.</p>
       </div>
       <button v-if="profile" class="button primary compact" type="button" @click="openEditModal">
         회원 정보 수정
@@ -259,12 +267,14 @@ onUnmounted(clearProfileFile)
           <span v-else>{{ initials }}</span>
         </div>
         <h2>{{ profile.nickname }}</h2>
-        <p class="muted">{{ profile.email }}</p>
-        <p class="muted">{{ roleLabel }}</p>
+        <p class="muted profile-role">
+          {{ roleLabel }}
+          <span aria-hidden="true">{{ roleEmoji }}</span>
+        </p>
         <hr class="profile-divider" />
-        <p v-if="profile.age" class="muted">생년월일: {{ profile.age }}</p>
-        <p v-if="profile.gender" class="muted">성별: {{ profile.gender }}</p>
-        <p v-if="profile.createdTime" class="muted">가입일: {{ formatDate(profile.createdTime) }}</p>
+        <div v-if="profile.createdTime" class="profile-meta-bottom">
+          <p class="muted">가입일: {{ formatDate(profile.createdTime) }}</p>
+        </div>
         <div class="profile-actions">
           <button class="button danger compact" type="button" :disabled="deleting" @click="withdrawMember">
             {{ deleting ? '탈퇴 처리 중' : '회원탈퇴' }}
@@ -275,8 +285,11 @@ onUnmounted(clearProfileFile)
       <div>
         <div class="mypage-stats">
           <article v-for="stat in statCards" :key="stat.label" class="card stat-card" :class="`tone-${stat.tone}`">
+            <p class="muted stat-label">
+              {{ stat.label }}
+              <span aria-hidden="true">{{ stat.emoji }}</span>
+            </p>
             <p class="stat-value">{{ stat.value }}</p>
-            <p class="muted">{{ stat.label }}</p>
           </article>
         </div>
 
@@ -298,11 +311,16 @@ onUnmounted(clearProfileFile)
               </thead>
               <tbody>
                 <tr v-for="item in histories" :key="item.id">
-                  <td>{{ quizRoomLabel(item) }}</td>
+                  <td class="history-room-title">{{ quizRoomLabel(item) }}</td>
                   <td class="number blue">{{ formatScore(item.score) }}점</td>
                   <td>
-                    <button class="feedback-preview" type="button" @click="openFeedbackModal(item)">
-                      {{ item.feedback || '피드백 없음' }}
+                    <button
+                      class="feedback-view-button"
+                      type="button"
+                      :disabled="!item.feedback"
+                      @click="openFeedbackModal(item)"
+                    >
+                      보기
                     </button>
                   </td>
                   <td>{{ formatDate(item.createdTime) }}</td>
@@ -424,11 +442,8 @@ onUnmounted(clearProfileFile)
     <div v-if="selectedFeedback" class="modal-backdrop" @click.self="closeFeedbackModal">
       <div class="card panel modal-panel" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
         <div class="section-title-row">
-          <div>
-            <h2 id="feedback-title">학습 피드백</h2>
-            <p class="muted">{{ quizRoomLabel(selectedFeedback) }} · {{ formatScore(selectedFeedback.score) }}점</p>
-          </div>
-          <button class="icon-button" type="button" aria-label="피드백 창 닫기" @click="closeFeedbackModal">
+          <h2 id="feedback-title">학습 피드백</h2>
+          <button class="icon-button feedback-close-button" type="button" aria-label="피드백 창 닫기" @click="closeFeedbackModal">
             닫기
           </button>
         </div>
