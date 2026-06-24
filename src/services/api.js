@@ -394,15 +394,69 @@ function firstDefined(...values) {
   return values.find((value) => value !== undefined && value !== null)
 }
 
+function extractQuizRoomTitle(value) {
+  return firstDefined(
+    value?.quizRoomTitle,
+    value?.quizRoomName,
+    value?.roomTitle,
+    value?.roomName,
+    value?.quizTitle,
+    value?.title,
+    value?.name,
+    value?.quizRoom?.quizRoomTitle,
+    value?.quizRoom?.quizRoomName,
+    value?.quizRoom?.roomTitle,
+    value?.quizRoom?.roomName,
+    value?.quizRoom?.title,
+    value?.quizRoom?.name,
+    value?.quizRoomResponse?.title,
+    value?.quizRoomResponse?.name,
+    value?.quizRoomDto?.title,
+    value?.quizRoomDto?.name,
+  )
+}
+
 function normalizeQuizResult(result) {
   return {
     ...result,
     id: firstDefined(result?.id, result?.resultId, result?.quizResultId),
     quizRoomId: firstDefined(result?.quizRoomId, result?.quizroomId, result?.roomId, result?.quizRoom?.id),
-    quizRoomTitle: firstDefined(result?.quizRoomTitle, result?.roomTitle, result?.title, result?.quizRoom?.title),
+    quizRoomTitle: extractQuizRoomTitle(result),
     score: Number(firstDefined(result?.score, result?.point, result?.totalScore)) || 0,
     feedback: firstDefined(result?.feedback, result?.finalFeedback, result?.aiFeedback, ''),
     createdTime: firstDefined(result?.createdTime, result?.createdAt, result?.date, result?.solvedAt),
+  }
+}
+
+async function enrichQuizRoomTitles(profile) {
+  const missingRoomIds = [
+    ...new Set(
+      (profile.quizResults || [])
+        .filter((result) => result.quizRoomId && !result.quizRoomTitle)
+        .map((result) => result.quizRoomId),
+    ),
+  ]
+
+  if (missingRoomIds.length === 0) return profile
+
+  const titleEntries = await Promise.all(
+    missingRoomIds.map(async (roomId) => {
+      try {
+        const room = await fetchQuizRoom(roomId)
+        return [roomId, extractQuizRoomTitle(room)]
+      } catch {
+        return [roomId, null]
+      }
+    }),
+  )
+  const titlesByRoomId = Object.fromEntries(titleEntries.filter(([, title]) => title))
+
+  return {
+    ...profile,
+    quizResults: profile.quizResults.map((result) => ({
+      ...result,
+      quizRoomTitle: result.quizRoomTitle || titlesByRoomId[result.quizRoomId] || '',
+    })),
   }
 }
 
@@ -510,7 +564,7 @@ export async function fetchMyPage() {
     throw new Error('마이페이지 정보를 불러오지 못했습니다.')
   }
 
-  return normalizeMyPageProfile(profile)
+  return enrichQuizRoomTitles(normalizeMyPageProfile(profile))
 }
 
 export async function updateMyPage(data) {
