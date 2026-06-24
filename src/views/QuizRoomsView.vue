@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { fetchQuizRooms } from '../services/api'
 
+const pageSize = 9
 const loading = ref(true)
 const errorMessage = ref('')
 const query = ref('')
@@ -9,6 +10,7 @@ const levelFilter = ref('ALL')
 const sortFilter = ref('DEFAULT')
 const rooms = ref([])
 const brokenThumbnails = ref({})
+const currentPage = ref(1)
 
 const levelMap = {
   BEGINNER: '초급',
@@ -56,6 +58,27 @@ const filteredRooms = computed(() => {
     return 0
   })
 })
+
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredRooms.value.length / pageSize)))
+const pageNumbers = computed(() => Array.from({ length: pageCount.value }, (_, index) => index + 1))
+const paginatedRooms = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredRooms.value.slice(start, start + pageSize)
+})
+
+watch([query, levelFilter, sortFilter], () => {
+  currentPage.value = 1
+})
+
+watch(pageCount, (nextPageCount) => {
+  if (currentPage.value > nextPageCount) {
+    currentPage.value = nextPageCount
+  }
+})
+
+function goToPage(page) {
+  currentPage.value = Math.min(Math.max(page, 1), pageCount.value)
+}
 
 function roomLevel(room) {
   const level = room?.level?.trim?.() || room?.level
@@ -118,7 +141,6 @@ onMounted(async () => {
 <template>
   <section class="page">
     <h1 class="page-title">퀴즈룸 목록</h1>
-    <p class="page-subtitle">서버에서 불러온 퀴즈룸을 확인하고 참여하세요.</p>
 
     <div class="toolbar">
       <input v-model="query" class="search-input" placeholder="퀴즈 검색..." type="search" />
@@ -137,38 +159,60 @@ onMounted(async () => {
     <p v-if="loading" class="muted">퀴즈룸을 불러오는 중입니다.</p>
     <div v-else-if="errorMessage" class="notice error">{{ errorMessage }}</div>
     <div v-else-if="filteredRooms.length === 0" class="notice">표시할 퀴즈룸이 없습니다.</div>
-    <div v-else class="quiz-grid">
-      <article v-for="(room, index) in filteredRooms" :key="roomId(room)" class="card quiz-card">
-        <div class="quiz-image" :class="imageClass(room, index)">
-          <img
-            v-if="roomThumbnail(room) && !brokenThumbnails[thumbnailKey(room, index)]"
-            :src="roomThumbnail(room)"
-            :alt="firstQuiz(room)?.title || room.title"
-            @error="brokenThumbnails[thumbnailKey(room, index)] = true"
-          />
-          <span v-else>{{ room.title }}</span>
-        </div>
-        <div class="quiz-body">
-          <div class="quiz-meta-row">
-            <span>{{ roomLevel(room) || '레벨 없음' }} · {{ quizCount(room) }}문제</span>
-            <span class="quiz-card-stats">
-              <span class="stat-pill solved" :aria-label="`풀이 ${solvedCount(room)}개`">
-                <span aria-hidden="true">✏️</span>
-                {{ solvedCount(room) }}
-              </span>
-              <span class="stat-pill liked" :aria-label="`좋아요 ${likeCount(room)}개`">
-                <span aria-hidden="true">♥</span>
-                {{ likeCount(room) }}
-              </span>
-            </span>
+    <template v-else>
+      <div class="quiz-grid">
+        <article v-for="(room, index) in paginatedRooms" :key="roomId(room)" class="card quiz-card">
+          <div class="quiz-image" :class="imageClass(room, index)">
+            <img
+              v-if="roomThumbnail(room) && !brokenThumbnails[thumbnailKey(room, index)]"
+              :src="roomThumbnail(room)"
+              :alt="firstQuiz(room)?.title || room.title"
+              @error="brokenThumbnails[thumbnailKey(room, index)] = true"
+            />
+            <span v-else>{{ room.title }}</span>
           </div>
-          <h2>{{ room.title }}</h2>
-          <p class="quiz-description">{{ room.description }}</p>
-          <RouterLink class="button primary full" :to="`/play/${roomId(room)}`">
-            퀴즈 시작하기
-          </RouterLink>
-        </div>
-      </article>
-    </div>
+          <div class="quiz-body">
+            <div class="quiz-meta-row">
+              <span>{{ roomLevel(room) || '레벨 없음' }} · {{ quizCount(room) }}문제</span>
+              <span class="quiz-card-stats">
+                <span class="stat-pill solved" :aria-label="`풀이 ${solvedCount(room)}개`">
+                  <span aria-hidden="true">✏️</span>
+                  {{ solvedCount(room) }}
+                </span>
+                <span class="stat-pill liked" :aria-label="`좋아요 ${likeCount(room)}개`">
+                  <span aria-hidden="true">♥</span>
+                  {{ likeCount(room) }}
+                </span>
+              </span>
+            </div>
+            <h2>{{ room.title }}</h2>
+            <p class="quiz-description">{{ room.description }}</p>
+            <RouterLink class="button primary full" :to="`/play/${roomId(room)}`">
+              퀴즈 시작하기
+            </RouterLink>
+          </div>
+        </article>
+      </div>
+
+      <nav v-if="pageCount > 1" class="pagination" aria-label="퀴즈룸 페이지">
+        <button class="pagination-button" type="button" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
+          이전
+        </button>
+        <button
+          v-for="page in pageNumbers"
+          :key="page"
+          class="pagination-button page-number"
+          :class="{ active: page === currentPage }"
+          type="button"
+          :aria-current="page === currentPage ? 'page' : undefined"
+          @click="goToPage(page)"
+        >
+          {{ page }}
+        </button>
+        <button class="pagination-button" type="button" :disabled="currentPage === pageCount" @click="goToPage(currentPage + 1)">
+          다음
+        </button>
+      </nav>
+    </template>
   </section>
 </template>
