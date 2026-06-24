@@ -7,6 +7,7 @@ import PlayView from '../views/PlayView.vue'
 import ResultView from '../views/ResultView.vue'
 import MyPageView from '../views/MyPageView.vue'
 import TeacherStudioView from '../views/TeacherStudioView.vue'
+import FireworksTestView from '../views/FireworksTestView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,6 +20,7 @@ const router = createRouter({
     { path: '/result/:id', name: 'result', component: ResultView },
     { path: '/my-page', name: 'my-page', component: MyPageView },
     { path: '/teacher', name: 'teacher', component: TeacherStudioView },
+    { path: '/fireworks-test', name: 'fireworks-test', component: FireworksTestView },
   ],
 })
 

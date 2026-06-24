@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import CelebrationEffects from '../components/CelebrationEffects.vue'
 import { fetchQuizRoom, increaseQuizRoomLike } from '../services/api'
 
 const route = useRoute()
@@ -16,6 +17,7 @@ const room = ref(null)
 const roomLoading = ref(false)
 const roomError = ref('')
 const roomLikes = ref(0)
+const celebrationEffects = ref(null)
 
 const levelMap = {
   BEGINNER: '초급',
@@ -144,11 +146,16 @@ onMounted(async () => {
   } finally {
     roomLoading.value = false
   }
+
+  await nextTick()
+  celebrationEffects.value?.launchFireworks()
 })
 </script>
 
 <template>
   <section class="page">
+    <CelebrationEffects ref="celebrationEffects" />
+
     <div v-if="!result" class="notice error">
       제출 결과가 없습니다. 퀴즈를 완료한 뒤 다시 확인해주세요.
     </div>
@@ -173,7 +180,6 @@ onMounted(async () => {
             <p class="muted">{{ roomError || '퀴즈룸 정보를 불러오지 못했습니다.' }}</p>
           </template>
         </div>
-
       </section>
 
       <div class="result-hero">
