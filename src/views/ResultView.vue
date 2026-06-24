@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import CelebrationEffects from '../components/CelebrationEffects.vue'
 import { increaseQuizRoomLike } from '../services/api'
 
 const route = useRoute()
@@ -12,6 +13,7 @@ const likedKey = `liked:${route.params.id}`
 const liking = ref(false)
 const liked = ref(sessionStorage.getItem(likedKey) === 'true')
 const likeMessage = ref('')
+const celebrationEffects = ref(null)
 
 const score = computed(() => {
   if (!result) return null
@@ -46,10 +48,18 @@ async function likeRoom() {
     liking.value = false
   }
 }
+
+onMounted(async () => {
+  if (!result) return
+
+  await nextTick()
+  celebrationEffects.value?.launchFireworks()
+})
 </script>
 
 <template>
   <section class="page">
+    <CelebrationEffects ref="celebrationEffects" />
     <div v-if="!result" class="notice error">
       제출 결과가 없습니다. 실제 제출 API 응답이 저장된 뒤 결과를 확인할 수 있습니다.
     </div>

@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import CelebrationEffects from '../components/CelebrationEffects.vue'
 import { compareImages, fetchQuizRoom, generateImage, submitFinalFeedback } from '../services/api'
 
 const route = useRoute()
@@ -15,6 +16,7 @@ const generatedAnswers = reactive({})
 const results = ref([])
 const latestFeedback = ref(null)
 const brokenImages = reactive({})
+const celebrationEffects = ref(null)
 
 const quizzes = computed(() => room.value?.quizList || [])
 const currentQuiz = computed(() => quizzes.value[currentIndex.value])
@@ -50,6 +52,8 @@ async function submitAnswer() {
       feedback: result.feedback,
     }
     latestFeedback.value = result
+    await nextTick()
+    celebrationEffects.value?.launchFanfare()
   } catch (error) {
     errorMessage.value = error.message
   } finally {
@@ -87,6 +91,7 @@ onMounted(async () => {
 
 <template>
   <section class="page">
+    <CelebrationEffects ref="celebrationEffects" />
     <p v-if="loading" class="muted">퀴즈룸에 입장하는 중입니다.</p>
     <div v-else-if="errorMessage && !room" class="notice error">{{ errorMessage }}</div>
 
