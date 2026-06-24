@@ -387,7 +387,7 @@ onUnmounted(clearProfileFile)
             </div>
 
             <div class="profile-edit-image-panel">
-              <label for="profile">프로필 이미지</label>
+              <span class="profile-edit-image-label">프로필 이미지</span>
               <div class="profile-upload profile-upload-large">
                 <div class="profile-upload-preview">
                   <img
@@ -398,6 +398,7 @@ onUnmounted(clearProfileFile)
                   />
                   <span v-else>{{ form.nickname.slice(0, 1) || '?' }}</span>
                 </div>
+                <label class="profile-upload-button" for="profile">이미지 파일 선택</label>
                 <input
                   id="profile"
                   class="profile-upload-input"
@@ -405,7 +406,7 @@ onUnmounted(clearProfileFile)
                   accept="image/png,image/jpeg,image/webp"
                   @change="handleProfileFileChange"
                 />
-                <p class="muted">새 이미지를 선택하면 저장 시 프로필 이미지가 변경됩니다.</p>
+                <p v-if="selectedProfileFile" class="profile-file-name">{{ selectedProfileFile.name }}</p>
               </div>
             </div>
           </div>

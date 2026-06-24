@@ -8,6 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
 const scoring = ref(false)
+const submittingFinal = ref(false)
 const errorMessage = ref('')
 const room = ref(null)
 const currentIndex = ref(0)
@@ -70,11 +71,14 @@ async function next() {
   }
 
   try {
+    submittingFinal.value = true
     const result = await submitFinalFeedback(route.params.id, results.value.filter(Boolean))
     sessionStorage.setItem(`result:${route.params.id}`, JSON.stringify(result))
     router.push(`/result/${route.params.id}`)
   } catch (error) {
     errorMessage.value = error.message
+  } finally {
+    submittingFinal.value = false
   }
 }
 
@@ -92,6 +96,11 @@ onMounted(async () => {
 <template>
   <section class="page">
     <CelebrationEffects ref="celebrationEffects" />
+    <div v-if="submittingFinal" class="final-submit-overlay" aria-live="polite" aria-label="최종 제출 중">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
 
     <p v-if="loading" class="muted">퀴즈룸에 입장하는 중입니다.</p>
     <div v-else-if="errorMessage && !room" class="notice error">{{ errorMessage }}</div>
@@ -110,7 +119,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="two-column">
+        <div class="two-column play-layout">
           <div class="card panel">
             <h2>{{ currentQuiz.title }}</h2>
             <p class="muted">이미지를 보고 어울리는 프롬프트를 작성하세요.</p>
@@ -144,14 +153,32 @@ onMounted(async () => {
 
             <div v-if="errorMessage" class="notice error" style="margin-top: 18px">{{ errorMessage }}</div>
 
-            <div v-if="generatedAnswers[currentIndex]" class="generated-answer">
+            <div class="generated-answer">
               <h3>생성된 이미지</h3>
-              <img :src="generatedAnswers[currentIndex]" alt="내가 생성한 이미지" />
+              <div class="generated-answer-frame" :class="{ loading: scoring }">
+                <img
+                  v-if="generatedAnswers[currentIndex]"
+                  :src="generatedAnswers[currentIndex]"
+                  alt="내가 생성한 이미지"
+                />
+                <div v-else-if="scoring" class="image-loading-state">
+                  <span class="image-spinner" aria-hidden="true"></span>
+                  <p>이미지를 생성하고 채점하는 중입니다.</p>
+                </div>
+                <p v-else class="muted">생성된 이미지가 여기에 표시됩니다.</p>
+              </div>
             </div>
 
-            <div v-if="latestFeedback" class="feedback-box">
-              <strong>{{ latestFeedback.score }}점</strong>
-              <p>{{ latestFeedback.feedback }}</p>
+            <div class="feedback-box" :class="{ loading: scoring, empty: !latestFeedback && !scoring }">
+              <template v-if="latestFeedback">
+                <strong>{{ latestFeedback.score }}점</strong>
+                <p>{{ latestFeedback.feedback }}</p>
+              </template>
+              <div v-else-if="scoring" class="image-loading-state">
+                <span class="image-spinner" aria-hidden="true"></span>
+                <p>AI 피드백을 준비하는 중입니다.</p>
+              </div>
+              <p v-else class="muted">AI 피드백이 여기에 표시됩니다.</p>
             </div>
 
             <button

@@ -12,7 +12,6 @@ const likedKey = `liked:${route.params.id}`
 
 const liking = ref(false)
 const liked = ref(sessionStorage.getItem(likedKey) === 'true')
-const likeMessage = ref('')
 const room = ref(null)
 const roomLoading = ref(false)
 const roomError = ref('')
@@ -117,16 +116,14 @@ async function likeRoom() {
   if (liked.value || liking.value) return
 
   liking.value = true
-  likeMessage.value = ''
 
   try {
     await increaseQuizRoomLike(route.params.id)
     liked.value = true
     roomLikes.value += 1
     sessionStorage.setItem(likedKey, 'true')
-    likeMessage.value = '좋아요를 눌렀습니다.'
   } catch (error) {
-    likeMessage.value = error.message
+    console.error(error)
   } finally {
     liking.value = false
   }
@@ -218,7 +215,6 @@ onMounted(async () => {
           {{ roomLikes }}
         </button>
       </div>
-      <p v-if="likeMessage" class="muted result-like-message">{{ likeMessage }}</p>
     </template>
   </section>
 </template>
