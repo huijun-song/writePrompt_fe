@@ -6,6 +6,7 @@ const loading = ref(true)
 const errorMessage = ref('')
 const query = ref('')
 const levelFilter = ref('ALL')
+const sortFilter = ref('DEFAULT')
 const rooms = ref([])
 const brokenThumbnails = ref({})
 
@@ -25,16 +26,34 @@ const levelMap = {
 }
 
 const levelOptions = ['ALL', '초급', '중급', '고급']
+const sortOptions = [
+  { value: 'DEFAULT', label: '정렬' },
+  { value: 'SOLVED', label: '풀이순' },
+  { value: 'LIKES', label: '좋아요 순' },
+]
 
 const filteredRooms = computed(() => {
   const keyword = query.value.trim().toLowerCase()
   const selectedLevel = levelFilter.value
+  const selectedSort = sortFilter.value
 
-  return rooms.value.filter((room) => {
+  const nextRooms = rooms.value.filter((room) => {
     const matchesKeyword = !keyword || `${room.title} ${room.description}`.toLowerCase().includes(keyword)
     const matchesLevel = selectedLevel === 'ALL' || roomLevel(room) === selectedLevel
 
     return matchesKeyword && matchesLevel
+  })
+
+  return [...nextRooms].sort((a, b) => {
+    if (selectedSort === 'SOLVED') {
+      return solvedCount(b) - solvedCount(a)
+    }
+
+    if (selectedSort === 'LIKES') {
+      return likeCount(b) - likeCount(a)
+    }
+
+    return 0
   })
 })
 
@@ -108,6 +127,11 @@ onMounted(async () => {
           {{ level === 'ALL' ? '난이도' : level }}
         </option>
       </select>
+      <select v-model="sortFilter" class="level-filter sort-filter" aria-label="정렬 기준">
+        <option v-for="option in sortOptions" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
     </div>
 
     <p v-if="loading" class="muted">퀴즈룸을 불러오는 중입니다.</p>
@@ -125,16 +149,21 @@ onMounted(async () => {
           <span v-else>{{ room.title }}</span>
         </div>
         <div class="quiz-body">
-          <div class="chip-row">
-            <span class="chip">{{ roomLevel(room) || '레벨 없음' }}</span>
-            <span class="chip">{{ quizCount(room) }}문제</span>
+          <div class="quiz-meta-row">
+            <span>{{ roomLevel(room) || '레벨 없음' }} · {{ quizCount(room) }}문제</span>
+            <span class="quiz-card-stats">
+              <span class="stat-pill solved" :aria-label="`풀이 ${solvedCount(room)}개`">
+                <span aria-hidden="true">✏️</span>
+                {{ solvedCount(room) }}
+              </span>
+              <span class="stat-pill liked" :aria-label="`좋아요 ${likeCount(room)}개`">
+                <span aria-hidden="true">♥</span>
+                {{ likeCount(room) }}
+              </span>
+            </span>
           </div>
           <h2>{{ room.title }}</h2>
           <p>{{ room.description }}</p>
-          <div class="chip-row">
-            <span class="muted">풀이 {{ solvedCount(room) }}</span>
-            <span class="muted">좋아요 {{ likeCount(room) }}</span>
-          </div>
           <RouterLink class="button primary full" :to="`/play/${roomId(room)}`">
             퀴즈 시작하기
           </RouterLink>

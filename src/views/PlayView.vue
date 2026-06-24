@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { compareImages, fetchQuizRoom, generateImage, submitFinalFeedback } from '../services/api'
 
@@ -15,6 +15,25 @@ const generatedAnswers = reactive({})
 const results = ref([])
 const latestFeedback = ref(null)
 const brokenImages = reactive({})
+const celebrating = ref(false)
+let celebrationTimer
+
+const celebrationBursts = Array.from({ length: 18 }, (_, index) => {
+  const side = index % 2 === 0 ? 'left' : 'right'
+  const distance = 110 + (index % 5) * 18
+
+  return {
+    id: index,
+    side,
+    style: {
+      '--burst-delay': `${(index % 9) * 55}ms`,
+      '--burst-y': `${18 + (index % 6) * 10}%`,
+      '--burst-x': `${side === 'left' ? distance : -distance}px`,
+      '--burst-fall-x': `${side === 'left' ? distance + 38 : -(distance + 38)}px`,
+      '--burst-rotate': `${side === 'left' ? -18 - index * 5 : 18 + index * 5}deg`,
+    },
+  }
+})
 
 const quizzes = computed(() => room.value?.quizList || [])
 const currentQuiz = computed(() => quizzes.value[currentIndex.value])
@@ -29,6 +48,18 @@ function quizKey(quiz) {
 
 function hasQuizImage(quiz) {
   return Boolean(quiz?.image) && !brokenImages[quizKey(quiz)]
+}
+
+function playCelebration() {
+  window.clearTimeout(celebrationTimer)
+  celebrating.value = false
+
+  window.requestAnimationFrame(() => {
+    celebrating.value = true
+    celebrationTimer = window.setTimeout(() => {
+      celebrating.value = false
+    }, 1500)
+  })
 }
 
 async function submitAnswer() {
@@ -50,6 +81,7 @@ async function submitAnswer() {
       feedback: result.feedback,
     }
     latestFeedback.value = result
+    playCelebration()
   } catch (error) {
     errorMessage.value = error.message
   } finally {
@@ -83,10 +115,26 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+onUnmounted(() => {
+  window.clearTimeout(celebrationTimer)
+})
 </script>
 
 <template>
   <section class="page">
+    <div v-if="celebrating" class="celebration-burst" aria-hidden="true">
+      <span
+        v-for="burst in celebrationBursts"
+        :key="burst.id"
+        class="celebration-particle"
+        :class="burst.side"
+        :style="burst.style"
+      >
+        🎉
+      </span>
+    </div>
+
     <p v-if="loading" class="muted">퀴즈룸에 입장하는 중입니다.</p>
     <div v-else-if="errorMessage && !room" class="notice error">{{ errorMessage }}</div>
 
