@@ -256,6 +256,16 @@ onUnmounted(clearProfileFile)
     <div v-else-if="errorMessage && !profile" class="notice error">{{ errorMessage }}</div>
 
     <div v-else class="profile-layout">
+      <div class="mypage-stats">
+        <article v-for="stat in statCards" :key="stat.label" class="card stat-card" :class="`tone-${stat.tone}`">
+          <p class="muted stat-label">
+            {{ stat.label }}
+            <span aria-hidden="true">{{ stat.emoji }}</span>
+          </p>
+          <p class="stat-value">{{ stat.value }}</p>
+        </article>
+      </div>
+
       <aside class="card profile-card">
         <div class="profile-avatar">
           <img
@@ -282,88 +292,76 @@ onUnmounted(clearProfileFile)
         </div>
       </aside>
 
-      <div>
-        <div class="mypage-stats">
-          <article v-for="stat in statCards" :key="stat.label" class="card stat-card" :class="`tone-${stat.tone}`">
-            <p class="muted stat-label">
-              {{ stat.label }}
-              <span aria-hidden="true">{{ stat.emoji }}</span>
-            </p>
-            <p class="stat-value">{{ stat.value }}</p>
-          </article>
+      <div class="card panel mypage-history-panel">
+        <h2>학습 기록</h2>
+        <div v-if="histories.length === 0" class="notice" style="margin-top: 18px">
+          아직 학습 기록이 없습니다.
         </div>
-
-        <div class="card panel" style="margin-top: 28px">
-          <h2>학습 기록</h2>
-          <div v-if="histories.length === 0" class="notice" style="margin-top: 18px">
-            아직 학습 기록이 없습니다.
-          </div>
-          <div v-else class="card table-card history-table">
-            <table class="teacher-table">
-              <thead>
-                <tr>
-                  <th>퀴즈룸</th>
-                  <th>점수</th>
-                  <th>피드백</th>
-                  <th>날짜</th>
-                  <th>다시 풀기</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in histories" :key="item.id">
-                  <td class="history-room-title">{{ quizRoomLabel(item) }}</td>
-                  <td class="number blue">{{ formatScore(item.score) }}점</td>
-                  <td>
-                    <button
-                      class="feedback-view-button"
-                      type="button"
-                      :disabled="!item.feedback"
-                      @click="openFeedbackModal(item)"
-                    >
-                      보기
-                    </button>
-                  </td>
-                  <td>{{ formatDate(item.createdTime) }}</td>
-                  <td>
-                    <RouterLink class="button secondary compact" :to="`/play/${item.quizRoomId}`">풀기</RouterLink>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div v-else class="card table-card history-table">
+          <table class="teacher-table">
+            <thead>
+              <tr>
+                <th>퀴즈룸</th>
+                <th>점수</th>
+                <th>피드백</th>
+                <th>날짜</th>
+                <th>다시 풀기</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in histories" :key="item.id">
+                <td class="history-room-title">{{ quizRoomLabel(item) }}</td>
+                <td class="number blue">{{ formatScore(item.score) }}점</td>
+                <td>
+                  <button
+                    class="feedback-view-button"
+                    type="button"
+                    :disabled="!item.feedback"
+                    @click="openFeedbackModal(item)"
+                  >
+                    보기
+                  </button>
+                </td>
+                <td>{{ formatDate(item.createdTime) }}</td>
+                <td>
+                  <RouterLink class="button secondary compact" :to="`/play/${item.quizRoomId}`">풀기</RouterLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
 
-        <div class="card panel" style="margin-top: 28px">
-          <h2>점수 변화</h2>
-          <div v-if="scoreTrend.length === 0" class="notice" style="margin-top: 18px">
-            점수 변화가 아직 없습니다.
-          </div>
-          <div v-else class="score-line-chart">
-            <svg viewBox="0 0 320 160" role="img" aria-label="점수 변화 꺾은선 그래프">
-              <g class="chart-grid">
-                <line x1="34" y1="22" x2="302" y2="22" class="chart-grid-line" />
-                <line x1="34" y1="77" x2="302" y2="77" class="chart-grid-line" />
-                <line x1="34" y1="132" x2="302" y2="132" class="chart-grid-line" />
-                <text x="4" y="26" class="chart-label">100</text>
-                <text x="12" y="81" class="chart-label">50</text>
-                <text x="20" y="136" class="chart-label">0</text>
-              </g>
-              <polyline class="chart-line" :points="trendPolyline" />
-              <g v-for="item in trendPoints" :key="item.id" class="chart-point-group">
-                <circle class="chart-point" :cx="item.x" :cy="item.y" r="4" />
-                <text class="chart-point-label" :x="item.x" :y="item.y - 10" text-anchor="middle">
-                  {{ formatScore(item.score) }}
-                </text>
-              </g>
-            </svg>
-            <div class="score-trend">
-              <div v-for="item in scoreTrend" :key="item.id" class="score-trend-item compact">
-                <div class="score-trend-head">
-                  <span>{{ quizRoomLabel(item) }}</span>
-                  <strong>{{ formatScore(item.score) }}점</strong>
-                </div>
-                <p class="muted">{{ formatDate(item.createdTime) }}</p>
+      <div class="card panel mypage-score-panel">
+        <h2>점수 변화</h2>
+        <div v-if="scoreTrend.length === 0" class="notice" style="margin-top: 18px">
+          점수 변화가 아직 없습니다.
+        </div>
+        <div v-else class="score-line-chart">
+          <svg viewBox="0 0 320 160" role="img" aria-label="점수 변화 꺾은선 그래프">
+            <g class="chart-grid">
+              <line x1="34" y1="22" x2="302" y2="22" class="chart-grid-line" />
+              <line x1="34" y1="77" x2="302" y2="77" class="chart-grid-line" />
+              <line x1="34" y1="132" x2="302" y2="132" class="chart-grid-line" />
+              <text x="4" y="26" class="chart-label">100</text>
+              <text x="12" y="81" class="chart-label">50</text>
+              <text x="20" y="136" class="chart-label">0</text>
+            </g>
+            <polyline class="chart-line" :points="trendPolyline" />
+            <g v-for="item in trendPoints" :key="item.id" class="chart-point-group">
+              <circle class="chart-point" :cx="item.x" :cy="item.y" r="4" />
+              <text class="chart-point-label" :x="item.x" :y="item.y - 10" text-anchor="middle">
+                {{ formatScore(item.score) }}
+              </text>
+            </g>
+          </svg>
+          <div class="score-trend">
+            <div v-for="item in scoreTrend" :key="item.id" class="score-trend-item compact">
+              <div class="score-trend-head">
+                <span>{{ quizRoomLabel(item) }}</span>
+                <strong>{{ formatScore(item.score) }}점</strong>
               </div>
+              <p class="muted">{{ formatDate(item.createdTime) }}</p>
             </div>
           </div>
         </div>

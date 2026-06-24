@@ -1600,15 +1600,21 @@ main.bubble-main > .bubble-field {
 .profile-layout {
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
-  gap: 32px;
+  grid-template-areas:
+    "profile stats"
+    "profile history"
+    "score score";
+  align-items: stretch;
+  gap: 28px 32px;
   margin-top: 32px;
 }
 
 .profile-card {
+  grid-area: profile;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 360px;
+  min-height: 100%;
   padding: 38px 32px;
   text-align: center;
 }
@@ -1683,9 +1689,18 @@ main.bubble-main > .bubble-field {
 }
 
 .mypage-stats {
+  grid-area: stats;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 22px;
+}
+
+.mypage-history-panel {
+  grid-area: history;
+}
+
+.mypage-score-panel {
+  grid-area: score;
 }
 
 .mypage-page {
@@ -3536,6 +3551,14 @@ main.bubble-main > .bubble-field {
     width: 152px;
     height: 152px;
     font-size: 50px;
+  }
+
+  .profile-layout {
+    grid-template-areas:
+      "stats"
+      "profile"
+      "history"
+      "score";
   }
 
   .auth-card {
