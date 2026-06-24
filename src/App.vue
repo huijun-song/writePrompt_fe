@@ -83,26 +83,28 @@ function handleLogout() {
 <template>
   <div class="app-shell">
     <header class="topbar">
-      <RouterLink class="brand" to="/">
-        <img class="brand-mark" src="/writeprompt-logo.svg" alt="" />
-        <span>WritePrompt</span>
-      </RouterLink>
-
-      <nav class="nav-links" aria-label="주요 메뉴">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          :class="{ active: route.path === item.to }"
-        >
-          {{ item.label }}
+      <div class="topbar-inner">
+        <RouterLink class="brand" to="/">
+          <img class="brand-mark" src="/writeprompt-logo.svg" alt="" />
+          <span>WritePrompt</span>
         </RouterLink>
-        <button v-if="isAuthed" class="nav-button" type="button" @click="handleLogout">로그아웃</button>
-        <template v-else>
-          <RouterLink class="nav-login" to="/login">로그인</RouterLink>
-          <RouterLink class="nav-login" to="/signup">회원가입</RouterLink>
-        </template>
-      </nav>
+
+        <nav class="nav-links" aria-label="주요 메뉴">
+          <RouterLink
+            v-for="item in navItems"
+            :key="item.to"
+            :to="item.to"
+            :class="{ active: route.path === item.to }"
+          >
+            {{ item.label }}
+          </RouterLink>
+          <button v-if="isAuthed" class="nav-button" type="button" @click="handleLogout">로그아웃</button>
+          <template v-else>
+            <RouterLink class="nav-login" to="/login">로그인</RouterLink>
+            <RouterLink class="nav-login" to="/signup">회원가입</RouterLink>
+          </template>
+        </nav>
+      </div>
     </header>
 
     <main :class="{ 'bubble-main': route.name !== 'home' }">
