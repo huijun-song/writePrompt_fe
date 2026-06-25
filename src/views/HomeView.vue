@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { getCurrentMember } from '../services/session'
 
-const guideVideoUrl = ''
+const guideVideoUrl = 'https://youtu.be/tLC1WacPSyA?si=luSXdzlYQgcL8Mjy'
 
 const quizShots = [
   { label: '미래 도시', className: 'shot-city' },
